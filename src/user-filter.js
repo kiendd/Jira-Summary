@@ -33,7 +33,7 @@ export const writeActorList = async (grouped, outputDir = 'output') => {
     const name = user.name || '';
     const id = user.id && user.id !== 'unknown' ? user.id : '';
     const email = user.email || '';
-    const key = id ? `id:${id}` : name ? `name:${name.toLowerCase()}` : null;
+    const key = name ? name.toLowerCase() : id || null;
     if (!key) return;
     const existing = seen.get(key);
     if (!existing) {

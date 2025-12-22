@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "dotenv": "^16.3.1",
+    "fchat-bot-api": "^0.2.0",
     "jira.js": "^5.2.2",
     "luxon": "^3.4.4",
     "p-limit": "^4.0.0",

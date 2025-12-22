@@ -12,6 +12,8 @@ import { writePdfReport } from './pdf-writer.js';
 import { buildGlobalPrompt } from './global-prompt.js';
 import { writePrompt } from './prompt-writer.js';
 import { applyUserFilters, writeActorList } from './user-filter.js';
+import { loadUserConfig } from './user-config.js';
+import { sendFchatReport } from './fchat-client.js';
 
 const main = async () => {
   const args = parseArgs(process.argv.slice(2));
@@ -42,12 +44,32 @@ const main = async () => {
     logger.info({ before: grouped.length, after: filtered.length }, 'Filtered actors by config');
   }
 
-  const targets = filtered;
+  const configUsers = loadUserConfig('users.txt');
+  let targets = filtered;
+  if (configUsers?.length) {
+    const norm = (v) => (v || '').toLowerCase();
+    targets = filtered.filter((entry) =>
+      configUsers.some((u) => norm(u.name) === norm(entry.actor.name) || norm(u.name) === norm(entry.actor.id))
+    );
+    // Add placeholders for missing users (no actions)
+    const existingKeys = new Set(targets.map((t) => norm(t.actor.name)));
+    configUsers.forEach((u) => {
+      const key = norm(u.name);
+      if (!existingKeys.has(key)) {
+        targets.push({
+          actor: { id: u.name, name: u.name, email: '' },
+          actions: [],
+          stats: { created: 0, status: 0, comments: 0, worklogs: 0, worklogSeconds: 0 },
+        });
+      }
+    });
+  }
 
   // Skip combined prompt; only per-user summaries are generated
 
   const summaries = new Map();
   const trackings = new Map();
+  const warnings = [];
   const condenseSummary = (text, maxLines = 6) => {
     const lines = (text || '').split('\n').map((l) => l.trim()).filter(Boolean);
     return lines.slice(0, maxLines).join('\n');
@@ -56,10 +78,19 @@ const main = async () => {
   const requireXlm = args.requireXlm ?? config.lmx.required;
   for (const entry of targets) {
     logger.info({ actor: entry.actor.name, actions: entry.actions.length, useXlm }, 'Summarizing actor');
-    let summary = useXlm ? await summarizeWithXlm(entry, dateLabel, { requireXlm }) : null;
-    if (!summary) summary = buildLocalSummary(entry);
+    let summary = null;
+    let tracking = '';
+
+    if (entry.actions.length === 0) {
+      summary = 'Không có hoạt động trong ngày.';
+      tracking = '';
+    } else {
+      summary = useXlm ? await summarizeWithXlm(entry, dateLabel, { requireXlm }) : null;
+      if (!summary) summary = buildLocalSummary(entry);
+      tracking = buildStatusTracking(entry);
+    }
+
     const summaryForPdf = condenseSummary(summary);
-    const tracking = buildStatusTracking(entry);
 
     summaries.set(entry.actor.id, summaryForPdf);
     trackings.set(entry.actor.id, tracking);
@@ -69,6 +100,13 @@ const main = async () => {
     logger.info(`\n===== ${entry.actor.name} =====\n${summaryForPdf}\n\n${tracking}\n`);
   }
 
+  // Collect warnings for users with no actions
+  warnings.push(
+    ...targets
+      .filter((entry) => !entry.actions.length)
+      .map((entry) => `No actions for user: ${entry.actor.name}`)
+  );
+
   if (args.json) {
     renderJson({ dateLabel, projectKey, grouped });
   } else {
@@ -76,8 +114,9 @@ const main = async () => {
   }
 
   try {
-    const pdfPath = writePdfReport({ dateLabel, projectKey, grouped: targets, summaries, trackings });
+    const pdfPath = await writePdfReport({ dateLabel, projectKey, grouped: targets, summaries, trackings, warnings });
     logger.info(`PDF saved at ${pdfPath}`);
+    await sendFchatReport({ projectKey, dateLabel, targets, summaries, pdfPath });
   } catch (err) {
     logger.warn({ err: err.message }, 'Failed to write PDF');
   }

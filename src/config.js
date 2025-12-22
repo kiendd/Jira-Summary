@@ -27,6 +27,11 @@ const parseList = (value) =>
         .map((v) => v.trim())
         .filter(Boolean)
     : [];
+const parseIntEnv = (value, fallback) => {
+  if (!value) return fallback;
+  const n = Number.parseInt(value, 10);
+  return Number.isFinite(n) ? n : fallback;
+};
 
 const normalizeBaseUrl = (url) => url.replace(/\/+$/, '');
 
@@ -47,6 +52,16 @@ export const config = {
     path: optionalEnv('LMX_PATH', '/v1/chat/completions'),
     model: optionalEnv('LMX_MODEL', ''),
     required: parseBool(optionalEnv('LMX_REQUIRED')),
+  },
+  fchat: {
+    enabled: parseBool(optionalEnv('FCHAT_ENABLED')),
+    token: optionalEnv('FCHAT_TOKEN', ''),
+    groupId: optionalEnv('FCHAT_GROUP_ID', ''),
+    baseUrl: optionalEnv('FCHAT_BASE_URL', ''),
+    sendText: parseBool(optionalEnv('FCHAT_SEND_TEXT')),
+    sendPdf: parseBool(optionalEnv('FCHAT_SEND_PDF')),
+    timeoutMs: parseIntEnv(optionalEnv('FCHAT_TIMEOUT_MS'), 30000),
+    headerTemplate: optionalEnv('FCHAT_HEADER_TEMPLATE', ''),
   },
   maxConcurrency: 5,
   filters: {

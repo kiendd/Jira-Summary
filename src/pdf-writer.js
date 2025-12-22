@@ -46,12 +46,20 @@ const renderRichText = (doc, summaryText) => {
   });
 };
 
-const addHeader = (doc, projectKey, dateLabel) => {
+const addHeader = (doc, projectKey, dateLabel, warnings) => {
   doc.font(FONT_BOLD).fontSize(20).text(`Jira Summary - ${projectKey}`, { align: 'left' });
   doc.moveDown(0.5);
   doc.font(FONT_REGULAR).fontSize(12).text(`Date: ${dateLabel} (Timezone: ${config.timezone})`);
   doc.moveDown(0.5);
   doc.text(`Generated at: ${new Date().toISOString()}`);
+  if (warnings && warnings.length) {
+    doc.moveDown(0.5);
+    doc.fillColor('red').font(FONT_BOLD).fontSize(12).text('Warnings:');
+    doc.moveDown(0.2);
+    doc.font(FONT_REGULAR).fontSize(11);
+    warnings.forEach((w) => doc.text(`- ${w}`));
+    doc.fillColor('black');
+  }
   doc.moveDown(1);
 };
 
@@ -96,7 +104,7 @@ const addActorSection = (doc, entry, summaryText, trackingText) => {
   doc.moveDown(1);
 };
 
-export const writePdfReport = ({ dateLabel, projectKey, grouped, summaries, trackings, outputDir = 'output' }) => {
+export const writePdfReport = async ({ dateLabel, projectKey, grouped, summaries, trackings, outputDir = 'output', warnings = [] }) => {
   ensureDir(outputDir);
   const fileName = `summary-${projectKey}-${dateLabel}.pdf`;
   const filePath = path.join(outputDir, fileName);
@@ -105,7 +113,7 @@ export const writePdfReport = ({ dateLabel, projectKey, grouped, summaries, trac
   const writeStream = fs.createWriteStream(filePath);
   doc.pipe(writeStream);
 
-  addHeader(doc, projectKey, dateLabel);
+  addHeader(doc, projectKey, dateLabel, warnings);
   addMenu(doc, grouped);
 
   grouped.forEach((entry, idx) => {
@@ -117,7 +125,9 @@ export const writePdfReport = ({ dateLabel, projectKey, grouped, summaries, trac
     addActorSection(doc, entry, summaryText, trackingText);
   });
 
-  doc.end();
-
-  return filePath;
+  return await new Promise((resolve, reject) => {
+    writeStream.on('finish', () => resolve(filePath));
+    writeStream.on('error', (err) => reject(err));
+    doc.end();
+  });
 };

@@ -13,6 +13,7 @@ CLI tóm tắt hành động Jira theo người trong một ngày (mặc định
    - `JIRA_PROJECT_KEY` (mặc định cho CLI, có thể override bằng `--project`)
    - `LMX_BASE_URL` (mặc định `http://localhost:8002`), `LMX_PATH` (mặc định `/v1/chat/completions`), `LMX_MODEL` nếu service yêu cầu.
    - Lọc user: `USER_INCLUDE` (danh sách tên/id, cách nhau bằng dấu phẩy) để chỉ tổng hợp user mong muốn; `USER_EXCLUDE` để bỏ qua.
+   - Gửi FChat: bật `FCHAT_ENABLED=true`, cấu hình `FCHAT_TOKEN`, `FCHAT_GROUP_ID`, tuỳ chọn `FCHAT_BASE_URL`. Bật `FCHAT_SEND_TEXT` để gửi summary dạng text, `FCHAT_SEND_PDF` để gửi PDF. Có thể tăng `FCHAT_TIMEOUT_MS` (ms) để tránh timeout khi gửi file lớn. Tuỳ chỉnh câu mở đầu với `FCHAT_HEADER_TEMPLATE` (dùng `{date}` để chèn ngày dd/mm/yyyy).
    - PDF tiếng Việt: font NotoSans đã tải sẵn vào `fonts/`. Nếu bị xóa hãy tải lại `.ttf` trước khi xuất PDF.
 
 ### Chạy

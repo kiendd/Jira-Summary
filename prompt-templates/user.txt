@@ -7,6 +7,7 @@ Instructions:
 - Summary: tối đa 10 bullet về các việc đã làm. Chỉ nêu tiêu đề, kết quả cuối (status hiện tại).
 - Ưu tiên kết quả hoàn thành hoặc chặn blocker; tránh lặp lại thông tin.
 - Không bịa nội dung ngoài dữ liệu cung cấp.
+- Output chỉ dùng một ngôn ngữ: tiếng Việt hoặc English (không trộn ngôn ngữ khác).
 
 Context:
 Actions:
