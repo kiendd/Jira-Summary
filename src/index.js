@@ -28,15 +28,7 @@ const main = async () => {
   const grouped = groupActionsByActor(actions);
   logger.info({ users: grouped.length }, 'Grouped actions by actor');
 
-  // Write combined prompt for all users (concise per-user actions)
-  try {
-    const globalPrompt = buildGlobalPrompt(grouped, dateLabel);
-    if (globalPrompt) {
-      writePrompt('all-users', globalPrompt);
-    }
-  } catch (err) {
-    logger.warn({ err: err.message }, 'Failed to write global prompt');
-  }
+  // Skip combined prompt; only per-user summaries are generated
 
   const summaries = new Map();
   const useXlm = !args.skipXlm;

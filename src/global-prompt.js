@@ -26,18 +26,4 @@ const buildIssueLines = (entry, limit = 6) => {
     .join('\n');
 };
 
-export const buildGlobalPrompt = (grouped, dateLabel) => {
-  const tmpl = loadTemplate('all-users');
-  const usersBlock = grouped
-    .map((entry) => {
-      const lines = buildIssueLines(entry);
-      return `## ${entry.actor.name}\n${lines}`;
-    })
-    .join('\n\n');
-
-  return tmpl
-    .replace(/{{DATE}}/g, dateLabel)
-    .replace(/{{TIMEZONE}}/g, config.timezone)
-    .replace(/{{PROJECT_KEY}}/g, config.jira.projectKey || '')
-    .replace(/{{USERS_BLOCK}}/g, usersBlock);
-};
+export const buildGlobalPrompt = () => '';
