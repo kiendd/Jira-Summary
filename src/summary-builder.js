@@ -17,7 +17,10 @@ const buildStatusChain = (transitions) => {
     if (!chain.length && from) chain.push(from);
     if (to && to !== chain[chain.length - 1]) chain.push(to);
   }
-  return chain.filter(Boolean).join(' -> ');
+  const uniq = chain.filter(Boolean);
+  if (uniq.length <= 1) return uniq.join(' -> ');
+  if (uniq.length === 2) return `${uniq[0]} -> ${uniq[1]}`;
+  return `${uniq[0]} -> ${uniq[uniq.length - 1]} (${uniq.length - 1} steps)`;
 };
 
 export const buildLocalSummary = (actorBlock) => {
@@ -146,7 +149,6 @@ export const buildStatusTracking = (actorBlock) => {
     .map((iss) => {
       const chain = buildStatusChain(iss.transitions);
       const parts = [`${iss.key}: ${iss.summary || ''}`.trim()];
-      if (iss.created) parts.push('Created');
       if (chain) parts.push(`Status: ${chain}`);
       if (iss.comments) parts.push(`Comments: ${iss.comments}`);
       if (iss.worklogs) parts.push(`Worklog: ${iss.worklogs} (${secondsToHhmm(iss.workSeconds)})`);
@@ -161,7 +163,7 @@ export const buildStatusTracking = (actorBlock) => {
   return trackingBlock;
 };
 
-export const buildIssuesList = (actorBlock, limit = 8) => {
+export const buildIssuesList = (actorBlock, limit = 5) => {
   const byIssue = new Map();
   for (const action of actorBlock.actions) {
     if (!byIssue.has(action.issueKey)) {

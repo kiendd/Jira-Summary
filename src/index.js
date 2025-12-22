@@ -43,13 +43,13 @@ const main = async () => {
     logger.info({ actor: entry.actor.name, actions: entry.actions.length, useXlm }, 'Summarizing actor');
     let summary = useXlm ? await summarizeWithXlm(entry, dateLabel, { requireXlm }) : null;
     if (!summary) summary = buildLocalSummary(entry);
-    const issueNotes = buildIssuesList(entry);
+    const issueNotes = buildIssuesList(entry, 5);
     const tracking = buildStatusTracking(entry);
     const totals = `Tổng quan: created ${entry.stats.created}; status-change ${entry.stats.status}; comments ${entry.stats.comments}; worklogs ${entry.stats.worklogs}`;
     const fullSummary = [
       summary,
-      issueNotes ? `\nChi tiết issue:\n${issueNotes}` : '',
-      `\n${tracking}`,
+      issueNotes ? `Chi tiết issue:\n${issueNotes}` : '',
+      tracking,
       totals,
     ]
       .filter(Boolean)
