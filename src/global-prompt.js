@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
 import { config } from './config.js';
+import { loadTemplate } from './prompt-loader.js';
 
 const actionLine = (action) => {
   const atLocal = DateTime.fromISO(action.at || action.details?.startedLocal, { zone: 'utc' })
@@ -22,12 +23,18 @@ const actionLine = (action) => {
 };
 
 export const buildGlobalPrompt = (grouped, dateLabel) => {
-  const header = `Tóm tắt hành động Jira trong ngày ${dateLabel} (múi giờ GMT+7) cho tất cả thành viên. Với mỗi người, trả lời 3-6 bullet ngắn gọn (issue key + tiêu đề, kết quả, trạng thái, thời gian nếu quan trọng). Ưu tiên kết quả hoàn thành/đang chặn, tránh lặp lại.`;
-  const body = grouped
+  const tmpl = loadTemplate('all-users');
+  const usersBlock = grouped
     .map((entry) => {
       const lines = entry.actions.map(actionLine).join('\n');
-      return `\n## ${entry.actor.name}\n${lines}`;
+      const statsLine = `Tổng quan: created ${entry.stats.created}; status-change ${entry.stats.status}; comments ${entry.stats.comments}; worklogs ${entry.stats.worklogs}`;
+      return `### ${entry.actor.name}\n${lines}\n${statsLine}`;
     })
-    .join('\n');
-  return `${header}\n${body}\nKết thúc mỗi người bằng bullet tổng quan số lượng (issue tạo, chuyển trạng thái, comment, worklog).`;
+    .join('\n\n');
+
+  return tmpl
+    .replace(/{{DATE}}/g, dateLabel)
+    .replace(/{{TIMEZONE}}/g, config.timezone)
+    .replace(/{{PROJECT_KEY}}/g, config.jira.projectKey || '')
+    .replace(/{{USERS_BLOCK}}/g, usersBlock);
 };

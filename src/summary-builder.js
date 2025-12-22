@@ -103,7 +103,6 @@ export const buildIssueSnippets = (actorBlock, limit = 8) => {
       byIssue.set(action.issueKey, {
         key: action.issueKey,
         summary: action.issueSummary,
-        description: truncate(action.issueDescription || '', 160),
       });
     }
   }
@@ -111,7 +110,6 @@ export const buildIssueSnippets = (actorBlock, limit = 8) => {
   return list
     .map((it) => {
       const parts = [`${it.key}: ${it.summary || ''}`.trim()];
-      if (it.description) parts.push(it.description);
       return `- ${parts.join(' | ')}`;
     })
     .join('\n');

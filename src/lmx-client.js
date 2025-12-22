@@ -3,32 +3,40 @@ import { config } from './config.js';
 import { logger } from './logger.js';
 import { truncate } from './utils.js';
 import { buildLocalSummary } from './summary-builder.js';
+import { writePrompt } from './prompt-writer.js';
+import { loadTemplate } from './prompt-loader.js';
 
 const buildPrompt = (actorBlock, dateLabel) => {
-  const header = `Tóm tắt hành động Jira cho ${actorBlock.actor.name} trong ngày ${dateLabel} (múi giờ GMT+7). Trả lời 3-6 bullet ngắn gọn, đủ thông tin (issue key, tiêu đề/nội dung ngắn, kết quả, trạng thái, thời gian nếu quan trọng). Ưu tiên kết quả hoàn thành/đang chặn, tránh lặp lại.`;
+  const tmpl = loadTemplate('user');
   const lines = actorBlock.actions
     .map((action) => {
       const atLocal = DateTime.fromISO(action.at || action.details?.startedLocal, { zone: 'utc' })
         .setZone(config.timezone)
         .toFormat('HH:mm');
-      const desc = action.issueDescription ? ` — ${truncate(action.issueDescription, 120)}` : '';
       if (action.type === 'status-change') {
-        return `- [${atLocal}] ${action.issueKey} ${action.details.from} -> ${action.details.to} | ${action.issueSummary}${desc}`;
+        return `- [${atLocal}] ${action.issueKey} ${action.details.from} -> ${action.details.to} | ${action.issueSummary}`;
       }
       if (action.type === 'comment') {
-        return `- [${atLocal}] comment ${action.issueKey}: ${truncate(action.details.excerpt, 160)}${desc}`;
+        return `- [${atLocal}] comment ${action.issueKey}: ${truncate(action.details.excerpt, 160)}`;
       }
       if (action.type === 'worklog') {
         const mins = Math.round((action.details.timeSpentSeconds || 0) / 60);
-        return `- [${atLocal}] worklog ${mins}m ${action.issueKey}: ${action.issueSummary}${desc}`;
+        return `- [${atLocal}] worklog ${mins}m ${action.issueKey}: ${action.issueSummary}`;
       }
       if (action.type === 'created') {
-        return `- [${atLocal}] created ${action.issueKey} (${action.issueSummary}) status ${action.details.status || ''}${desc}`;
+        return `- [${atLocal}] created ${action.issueKey} (${action.issueSummary}) status ${action.details.status || ''}`;
       }
-      return `- [${atLocal}] ${action.type} ${action.issueKey}: ${action.issueSummary}${desc}`;
+      return `- [${atLocal}] ${action.type} ${action.issueKey}: ${action.issueSummary}`;
     })
     .join('\n');
-  return `${header}\n${lines}\nKết thúc bằng bullet tổng quan số lượng (issue tạo, chuyển trạng thái, comment, worklog).`;
+  const statsLine = `created ${actorBlock.stats?.created ?? 0}; status-change ${actorBlock.stats?.status ?? 0}; comments ${actorBlock.stats?.comments ?? 0}; worklogs ${actorBlock.stats?.worklogs ?? 0}`;
+  return tmpl
+    .replace(/{{DATE}}/g, dateLabel)
+    .replace(/{{TIMEZONE}}/g, config.timezone)
+    .replace(/{{USER_NAME}}/g, actorBlock.actor.name || '')
+    .replace(/{{PROJECT_KEY}}/g, config.jira.projectKey || '')
+    .replace(/{{STATS_LINE}}/g, statsLine)
+    .replace(/{{ACTION_LINES}}/g, lines);
 };
 
 const buildBody = (url, prompt) => {
@@ -78,6 +86,7 @@ const tryCallLmx = async (url, prompt) => {
 
 export const summarizeWithXlm = async (actorBlock, dateLabel, { requireXlm } = {}) => {
   const prompt = buildPrompt(actorBlock, dateLabel);
+  writePrompt(actorBlock.actor.name, prompt);
   const base = config.lmx.baseUrl;
   const urls = [
     `${base}${config.lmx.path}`,

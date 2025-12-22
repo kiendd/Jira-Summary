@@ -9,6 +9,8 @@ import { summarizeWithXlm } from './lmx-client.js';
 import { renderHuman, renderJson } from './render.js';
 import { buildLocalSummary, buildIssueSnippets } from './summary-builder.js';
 import { writePdfReport } from './pdf-writer.js';
+import { buildGlobalPrompt } from './global-prompt.js';
+import { writePrompt } from './prompt-writer.js';
 
 const main = async () => {
   const args = parseArgs(process.argv.slice(2));
@@ -25,6 +27,14 @@ const main = async () => {
   logger.info({ projectKey, date: dateLabel, actionCount: actions.length }, 'Collected actions');
   const grouped = groupActionsByActor(actions);
   logger.info({ users: grouped.length }, 'Grouped actions by actor');
+
+  // Write combined prompt for all users (title only, no description)
+  try {
+    const globalPrompt = buildGlobalPrompt(grouped, dateLabel);
+    writePrompt('all-users', globalPrompt);
+  } catch (err) {
+    logger.warn({ err: err.message }, 'Failed to write global prompt');
+  }
 
   const summaries = new Map();
   const useXlm = !args.skipXlm;
