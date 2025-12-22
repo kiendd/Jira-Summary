@@ -32,13 +32,17 @@ const main = async () => {
 
   const summaries = new Map();
   const trackings = new Map();
+  const condenseSummary = (text, maxLines = 6) => {
+    const lines = (text || '').split('\n').map((l) => l.trim()).filter(Boolean);
+    return lines.slice(0, maxLines).join('\n');
+  };
   const useXlm = !args.skipXlm;
   const requireXlm = args.requireXlm ?? config.lmx.required;
   for (const entry of grouped) {
     logger.info({ actor: entry.actor.name, actions: entry.actions.length, useXlm }, 'Summarizing actor');
     let summary = useXlm ? await summarizeWithXlm(entry, dateLabel, { requireXlm }) : null;
     if (!summary) summary = buildLocalSummary(entry);
-    const summaryForPdf = summary;
+    const summaryForPdf = condenseSummary(summary);
     const tracking = buildStatusTracking(entry);
 
     summaries.set(entry.actor.id, summaryForPdf);
