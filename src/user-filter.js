@@ -30,21 +30,21 @@ export const writeActorList = async (grouped, outputDir = 'output') => {
   const seen = new Map();
   grouped.forEach((entry) => {
     if (entry.actor?.id) {
-      seen.set(entry.actor.id, entry.actor.name || entry.actor.id);
+      seen.set(entry.actor.id, { name: entry.actor.name || entry.actor.id, email: entry.actor.email || '' });
     }
   });
 
   const allUsers = await getAllUsersInProject(config.jira.projectKey);
   allUsers.forEach((u) => {
     if (!seen.has(u.id)) {
-      seen.set(u.id, u.name);
+      seen.set(u.id, { name: u.name, email: u.email || '' });
     }
   });
 
   const filePath = path.join(outputDir, 'actors.txt');
   const lines = Array.from(seen.entries())
-    .sort((a, b) => a[1].localeCompare(b[1]))
-    .map(([id, name]) => `${name} | ${id}`);
+    .sort((a, b) => a[1].name.localeCompare(b[1].name))
+    .map(([id, info]) => `${info.name} | ${id} | ${info.email || ''}`);
   fs.writeFileSync(filePath, lines.join('\n'), 'utf8');
   return filePath;
 };

@@ -133,13 +133,14 @@ export const getAllUsersInProject = async (projectKey) => {
           if (actor?.actorGroup) return;
           const id = actor?.actorUser?.accountId || actor?.actorUser?.displayName || actor?.displayName;
           const name = actor?.displayName || actor?.actorUser?.displayName;
-          if (id && name) users.set(id, name);
+          const email = actor?.actorUser?.emailAddress || '';
+          if (id && name) users.set(id, { name, email });
         });
       } catch (err) {
         logger.warn({ err: err.message, link }, 'Failed to read project role');
       }
     }
-    return Array.from(users.entries()).map(([id, name]) => ({ id, name }));
+    return Array.from(users.entries()).map(([id, info]) => ({ id, name: info.name, email: info.email }));
   } catch (err) {
     logger.warn({ err: err.message }, 'Failed to fetch project users');
     return [];
