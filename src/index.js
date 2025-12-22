@@ -11,6 +11,7 @@ import { buildLocalSummary, buildStatusTracking, buildIssuesList } from './summa
 import { writePdfReport } from './pdf-writer.js';
 import { buildGlobalPrompt } from './global-prompt.js';
 import { writePrompt } from './prompt-writer.js';
+import { applyUserFilters, writeActorList } from './user-filter.js';
 
 const main = async () => {
   const args = parseArgs(process.argv.slice(2));
@@ -28,6 +29,20 @@ const main = async () => {
   const grouped = groupActionsByActor(actions);
   logger.info({ users: grouped.length }, 'Grouped actions by actor');
 
+  // Write actor list for reference
+  const actorsPath = writeActorList(grouped);
+  if (actorsPath) {
+    logger.info(`Actors list written to ${actorsPath}`);
+  }
+
+  // Apply include/exclude filters
+  const filtered = applyUserFilters(grouped);
+  if (filtered.length !== grouped.length) {
+    logger.info({ before: grouped.length, after: filtered.length }, 'Filtered actors by config');
+  }
+
+  const targets = filtered;
+
   // Skip combined prompt; only per-user summaries are generated
 
   const summaries = new Map();
@@ -38,7 +53,7 @@ const main = async () => {
   };
   const useXlm = !args.skipXlm;
   const requireXlm = args.requireXlm ?? config.lmx.required;
-  for (const entry of grouped) {
+  for (const entry of targets) {
     logger.info({ actor: entry.actor.name, actions: entry.actions.length, useXlm }, 'Summarizing actor');
     let summary = useXlm ? await summarizeWithXlm(entry, dateLabel, { requireXlm }) : null;
     if (!summary) summary = buildLocalSummary(entry);
@@ -60,7 +75,7 @@ const main = async () => {
   }
 
   try {
-    const pdfPath = writePdfReport({ dateLabel, projectKey, grouped, summaries, trackings });
+    const pdfPath = writePdfReport({ dateLabel, projectKey, grouped: targets, summaries, trackings });
     logger.info(`PDF saved at ${pdfPath}`);
   } catch (err) {
     logger.warn({ err: err.message }, 'Failed to write PDF');

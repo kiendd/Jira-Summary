@@ -20,6 +20,13 @@ const parseBool = (value) => {
   const normalized = value.trim().toLowerCase();
   return ['true', '1', 'yes', 'y', 'on'].includes(normalized);
 };
+const parseList = (value) =>
+  value
+    ? value
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean)
+    : [];
 
 const normalizeBaseUrl = (url) => url.replace(/\/+$/, '');
 
@@ -42,4 +49,8 @@ export const config = {
     required: parseBool(optionalEnv('LMX_REQUIRED')),
   },
   maxConcurrency: 5,
+  filters: {
+    includeUsers: parseList(optionalEnv('USER_INCLUDE')),
+    excludeUsers: parseList(optionalEnv('USER_EXCLUDE')),
+  },
 };
