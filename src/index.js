@@ -31,28 +31,23 @@ const main = async () => {
   // Skip combined prompt; only per-user summaries are generated
 
   const summaries = new Map();
+  const trackings = new Map();
   const useXlm = !args.skipXlm;
   const requireXlm = args.requireXlm ?? config.lmx.required;
   for (const entry of grouped) {
     logger.info({ actor: entry.actor.name, actions: entry.actions.length, useXlm }, 'Summarizing actor');
     let summary = useXlm ? await summarizeWithXlm(entry, dateLabel, { requireXlm }) : null;
     if (!summary) summary = buildLocalSummary(entry);
-    const issueNotes = buildIssuesList(entry, 5);
-    const tracking = buildStatusTracking(entry);
     const totals = `Tổng quan: created ${entry.stats.created}; status-change ${entry.stats.status}; comments ${entry.stats.comments}; worklogs ${entry.stats.worklogs}`;
-    const fullSummary = [
-      summary,
-      issueNotes ? `Chi tiết issue:\n${issueNotes}` : '',
-      tracking,
-      totals,
-    ]
-      .filter(Boolean)
-      .join('\n\n');
+    const summaryForPdf = [summary, totals].filter(Boolean).join('\n\n');
+    const tracking = buildStatusTracking(entry);
 
-    summaries.set(entry.actor.id, fullSummary);
+    summaries.set(entry.actor.id, summaryForPdf);
+    trackings.set(entry.actor.id, tracking);
+
     logger.info({ actor: entry.actor.name }, 'Done summarizing actor');
     // Log per-user summary immediately in a clearer format
-    logger.info(`\n===== ${entry.actor.name} =====\n${fullSummary}\n`);
+    logger.info(`\n===== ${entry.actor.name} =====\n${summaryForPdf}\n\n${tracking}\n`);
   }
 
   if (args.json) {
@@ -62,7 +57,7 @@ const main = async () => {
   }
 
   try {
-    const pdfPath = writePdfReport({ dateLabel, projectKey, grouped, summaries });
+    const pdfPath = writePdfReport({ dateLabel, projectKey, grouped, summaries, trackings });
     logger.info(`PDF saved at ${pdfPath}`);
   } catch (err) {
     logger.warn({ err: err.message }, 'Failed to write PDF');
