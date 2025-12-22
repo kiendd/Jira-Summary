@@ -7,7 +7,7 @@ import { collectActionsForRange } from './jira-actions.js';
 import { groupActionsByActor } from './group-actions.js';
 import { summarizeWithXlm } from './lmx-client.js';
 import { renderHuman, renderJson } from './render.js';
-import { buildLocalSummary, buildIssueSnippets, buildStatusTracking, buildIssuesList } from './summary-builder.js';
+import { buildLocalSummary, buildStatusTracking, buildIssuesList } from './summary-builder.js';
 import { writePdfReport } from './pdf-writer.js';
 import { buildGlobalPrompt } from './global-prompt.js';
 import { writePrompt } from './prompt-writer.js';
