@@ -8,6 +8,7 @@ Instructions:
 - Mỗi bullet nêu issue key + tiêu đề, kết quả chính (done/đang chặn/đang test), trạng thái/diễn tiến, thời gian nếu quan trọng.
 - Ưu tiên kết quả hoàn thành hoặc chặn blocker; tránh lặp lại thông tin.
 - Không bịa nội dung ngoài dữ liệu cung cấp.
+- Không dịch trạng thái; giữ nguyên tên tiếng Anh của status (ví dụ: To Do, In Progress, Done).
 
 Context:
 Actions:
