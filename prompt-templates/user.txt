@@ -4,8 +4,7 @@ User: {{USER_NAME}}
 Project: {{PROJECT_KEY}}
 
 Instructions:
-- Summary: 3-10 bullet về các việc đã làm trong ngày.
-- Mỗi bullet nêu issue key + tiêu đề, kết quả chính (done/đang chặn/đang test), trạng thái/diễn tiến, thời gian nếu quan trọng.
+- Summary: tối đa 10 bullet về các việc đã làm. Chỉ nêu tiêu đề, kết quả cuối (status hiện tại).
 - Ưu tiên kết quả hoàn thành hoặc chặn blocker; tránh lặp lại thông tin.
 - Không bịa nội dung ngoài dữ liệu cung cấp.
 
