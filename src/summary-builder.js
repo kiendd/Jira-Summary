@@ -15,12 +15,15 @@ const buildStatusChain = (transitions) => {
     const from = t.from || '';
     const to = t.to || '';
     if (!chain.length && from) chain.push(from);
-    if (to && to !== chain[chain.length - 1]) chain.push(to);
+    if (to) {
+      const last = chain[chain.length - 1];
+      if (to !== last) chain.push(to);
+    }
   }
   const uniq = chain.filter(Boolean);
-  if (uniq.length <= 1) return uniq.join(' -> ');
-  if (uniq.length === 2) return `${uniq[0]} -> ${uniq[1]}`;
-  return `${uniq[0]} -> ${uniq[uniq.length - 1]} (${uniq.length - 1} steps)`;
+  if (!uniq.length) return '';
+  const steps = uniq.length > 1 ? ` (${uniq.length - 1} steps)` : '';
+  return `${uniq.join(' -> ')}${steps}`;
 };
 
 export const buildLocalSummary = (actorBlock) => {
