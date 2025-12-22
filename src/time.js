@@ -1,0 +1,27 @@
+import { DateTime } from 'luxon';
+
+export const computeDayRange = (dateInput, timezone) => {
+  const base = dateInput
+    ? DateTime.fromISO(dateInput, { zone: timezone })
+    : DateTime.now().setZone(timezone);
+  if (!base.isValid) {
+    throw new Error(`Invalid date input: ${dateInput}`);
+  }
+  const start = base.startOf('day');
+  const end = start.plus({ days: 1 });
+  return { start, end };
+};
+
+export const toJiraDateTime = (dt) =>
+  dt.toUTC().toFormat('yyyy-LL-dd HH:mm');
+
+export const formatLocalTime = (isoString, timezone) => {
+  const dt = DateTime.fromISO(isoString, { zone: 'utc' }).setZone(timezone);
+  return dt.isValid ? dt.toFormat('yyyy-LL-dd HH:mm') : isoString;
+};
+
+export const isWithinRange = (isoString, start, end) => {
+  const dt = DateTime.fromISO(isoString, { zone: 'utc' });
+  if (!dt.isValid) return false;
+  return dt >= start.toUTC() && dt < end.toUTC();
+};
