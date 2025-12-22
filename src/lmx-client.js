@@ -29,13 +29,11 @@ const buildPrompt = (actorBlock, dateLabel) => {
       return `- [${atLocal}] ${action.type} ${action.issueKey}: ${action.issueSummary}`;
     })
     .join('\n');
-  const statsLine = `created ${actorBlock.stats?.created ?? 0}; status-change ${actorBlock.stats?.status ?? 0}; comments ${actorBlock.stats?.comments ?? 0}; worklogs ${actorBlock.stats?.worklogs ?? 0}`;
   return tmpl
     .replace(/{{DATE}}/g, dateLabel)
     .replace(/{{TIMEZONE}}/g, config.timezone)
     .replace(/{{USER_NAME}}/g, actorBlock.actor.name || '')
     .replace(/{{PROJECT_KEY}}/g, config.jira.projectKey || '')
-    .replace(/{{STATS_LINE}}/g, statsLine)
     .replace(/{{ACTION_LINES}}/g, lines);
 };
 

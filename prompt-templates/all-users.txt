@@ -13,4 +13,3 @@ Context per user (giữ nguyên thứ tự):
 
 Định dạng:
 - Mỗi người một khối: heading với tên, dưới đó là các bullet.
-- Mỗi khối kết thúc bằng dòng tổng quan: "Tổng quan: created X; status-change Y; comments Z; worklogs W".

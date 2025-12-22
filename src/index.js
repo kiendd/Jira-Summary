@@ -45,6 +45,8 @@ const main = async () => {
     if (!summary) summary = buildLocalSummary(entry);
     const issueNotes = buildIssueSnippets(entry);
     if (issueNotes) summary = `${summary}\n\nChi tiết issue:\n${issueNotes}`;
+    const totals = `Tổng quan: created ${entry.stats.created}; status-change ${entry.stats.status}; comments ${entry.stats.comments}; worklogs ${entry.stats.worklogs}`;
+    summary = `${summary}\n${totals}`;
     summaries.set(entry.actor.id, summary);
     logger.info({ actor: entry.actor.name }, 'Done summarizing actor');
     // Log per-user summary immediately

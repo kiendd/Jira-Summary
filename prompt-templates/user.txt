@@ -10,10 +10,8 @@ Instructions:
 - Không bịa nội dung ngoài dữ liệu cung cấp.
 
 Context:
-Stats: {{STATS_LINE}}
 Actions:
 {{ACTION_LINES}}
 
 Yêu cầu định dạng:
 - Xuất bullet list.
-- Kết thúc bằng dòng tổng quan: "Tổng quan: created X; status-change Y; comments Z; worklogs W".

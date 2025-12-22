@@ -27,8 +27,7 @@ export const buildGlobalPrompt = (grouped, dateLabel) => {
   const usersBlock = grouped
     .map((entry) => {
       const lines = entry.actions.map(actionLine).join('\n');
-      const statsLine = `Tổng quan: created ${entry.stats.created}; status-change ${entry.stats.status}; comments ${entry.stats.comments}; worklogs ${entry.stats.worklogs}`;
-      return `### ${entry.actor.name}\n${lines}\n${statsLine}`;
+      return `### ${entry.actor.name}\n${lines}`;
     })
     .join('\n\n');
 
