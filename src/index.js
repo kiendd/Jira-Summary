@@ -30,10 +30,11 @@ const main = async () => {
   logger.info({ users: grouped.length }, 'Grouped actions by actor');
 
   // Write actor list for reference
-  const actorsPath = writeActorList(grouped);
-  if (actorsPath) {
-    logger.info(`Actors list written to ${actorsPath}`);
-  }
+  writeActorList(grouped).then((actorsPath) => {
+    if (actorsPath) {
+      logger.info(`Actors list written to ${actorsPath}`);
+    }
+  });
 
   // Apply include/exclude filters
   const filtered = applyUserFilters(grouped);

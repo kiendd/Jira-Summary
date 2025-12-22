@@ -115,3 +115,33 @@ export const getIssueWithDetails = async (issueKey) => {
     worklogs,
   };
 };
+export const getAllUsersInProject = async (projectKey) => {
+  // Fetch project roles to get members; fallback to search users by group/permission is Jira-specific.
+  try {
+    const roles = await jiraClient.projectRoles.getProjectRoles({
+      projectIdOrKey: projectKey,
+    });
+    const roleLinks = Object.values(roles || {}).filter((v) => typeof v === 'string');
+    const users = new Map();
+    for (const link of roleLinks) {
+      try {
+        const res = await jiraClient.projectRoles.getProjectRole({
+          projectIdOrKey: projectKey,
+          id: link.split('/').pop(),
+        });
+        (res?.actors || []).forEach((actor) => {
+          if (actor?.actorGroup) return;
+          const id = actor?.actorUser?.accountId || actor?.actorUser?.displayName || actor?.displayName;
+          const name = actor?.displayName || actor?.actorUser?.displayName;
+          if (id && name) users.set(id, name);
+        });
+      } catch (err) {
+        logger.warn({ err: err.message, link }, 'Failed to read project role');
+      }
+    }
+    return Array.from(users.entries()).map(([id, name]) => ({ id, name }));
+  } catch (err) {
+    logger.warn({ err: err.message }, 'Failed to fetch project users');
+    return [];
+  }
+};

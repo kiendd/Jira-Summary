@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { config } from './config.js';
+import { getAllUsersInProject } from './jira-client.js';
 
 const matchUser = (entry, token) => {
   const norm = (v) => (v || '').toLowerCase();
@@ -21,13 +22,29 @@ export const applyUserFilters = (grouped) => {
   });
 };
 
-export const writeActorList = (grouped, outputDir = 'output') => {
-  if (!grouped.length) return null;
+export const writeActorList = async (grouped, outputDir = 'output') => {
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
+
+  const seen = new Map();
+  grouped.forEach((entry) => {
+    if (entry.actor?.id) {
+      seen.set(entry.actor.id, entry.actor.name || entry.actor.id);
+    }
+  });
+
+  const allUsers = await getAllUsersInProject(config.jira.projectKey);
+  allUsers.forEach((u) => {
+    if (!seen.has(u.id)) {
+      seen.set(u.id, u.name);
+    }
+  });
+
   const filePath = path.join(outputDir, 'actors.txt');
-  const lines = grouped.map((entry) => `${entry.actor.name || 'Unknown'} | ${entry.actor.id || ''}`);
+  const lines = Array.from(seen.entries())
+    .sort((a, b) => a[1].localeCompare(b[1]))
+    .map(([id, name]) => `${name} | ${id}`);
   fs.writeFileSync(filePath, lines.join('\n'), 'utf8');
   return filePath;
 };
