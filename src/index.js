@@ -38,8 +38,7 @@ const main = async () => {
     logger.info({ actor: entry.actor.name, actions: entry.actions.length, useXlm }, 'Summarizing actor');
     let summary = useXlm ? await summarizeWithXlm(entry, dateLabel, { requireXlm }) : null;
     if (!summary) summary = buildLocalSummary(entry);
-    const totals = `Tổng quan: created ${entry.stats.created}; status-change ${entry.stats.status}; comments ${entry.stats.comments}; worklogs ${entry.stats.worklogs}`;
-    const summaryForPdf = [summary, totals].filter(Boolean).join('\n\n');
+    const summaryForPdf = summary;
     const tracking = buildStatusTracking(entry);
 
     summaries.set(entry.actor.id, summaryForPdf);

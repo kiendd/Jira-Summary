@@ -76,10 +76,12 @@ const addActorSection = (doc, entry, summaryText, trackingText) => {
 
   const stats = entry.stats;
   const workTime = secondsToHhmm(stats.worklogSeconds);
+  doc.font(FONT_BOLD).fontSize(12).text('Tổng hợp');
+  doc.moveDown(0.2);
   doc.font(FONT_REGULAR).fontSize(11).text(
     `Stats: created ${stats.created}, status ${stats.status}, comments ${stats.comments}, worklogs ${stats.worklogs}, time ${workTime}`
   );
-  doc.moveDown(0.4);
+  doc.moveDown(0.2);
 
   doc.font(FONT_REGULAR).fontSize(11);
   renderRichText(doc, summaryText || 'No summary');
