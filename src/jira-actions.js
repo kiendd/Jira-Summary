@@ -19,10 +19,11 @@ const safeText = (value) => {
 };
 
 const normalizeUser = (user, fallback) => {
-  if (!user) return fallback || { id: 'unknown', name: 'Unknown' };
+  if (!user) return fallback || { id: 'unknown', name: 'Unknown', email: '' };
   const id = user.accountId || user.key || user.name || user.emailAddress || fallback?.id || 'unknown';
   const name = user.displayName || user.name || user.emailAddress || fallback?.name || 'Unknown';
-  return { id, name };
+  const email = user.emailAddress || '';
+  return { id, name, email };
 };
 
 const normalizeTimestamp = (value) => {

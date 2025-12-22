@@ -1,9 +1,11 @@
 import { Version2Client } from 'jira.js';
+import pLimit from 'p-limit';
 import { config } from './config.js';
 import { logger } from './logger.js';
 import { toJiraDateTime } from './time.js';
 
 const isPat = config.jira.authType === 'pat';
+const limit = pLimit(config.maxConcurrency || 5);
 
 export const jiraClient = new Version2Client({
   host: config.jira.baseUrl,
@@ -140,7 +142,25 @@ export const getAllUsersInProject = async (projectKey) => {
         logger.warn({ err: err.message, link }, 'Failed to read project role');
       }
     }
-    return Array.from(users.entries()).map(([id, info]) => ({ id, name: info.name, email: info.email }));
+
+    const entries = Array.from(users.entries()).map(([id, info]) => ({ id, name: info.name, email: info.email || '' }));
+
+    await Promise.all(
+      entries.map((u) =>
+        limit(async () => {
+          if (u.email) return;
+          try {
+            const res = await jiraClient.users.getUser({ accountId: u.id });
+            const email = res?.emailAddress || '';
+            if (email) u.email = email;
+          } catch (err) {
+            logger.debug({ err: err.message, accountId: u.id }, 'Failed to fetch user email');
+          }
+        })
+      )
+    );
+
+    return entries;
   } catch (err) {
     logger.warn({ err: err.message }, 'Failed to fetch project users');
     return [];
