@@ -1,0 +1,15 @@
+Jira daily summary (GMT+7) - all users
+Date: {{DATE}}
+Project: {{PROJECT_KEY}}
+
+Instructions:
+- Với từng người: tóm tắt 3-10 bullet ngắn gọn (tiêu đề, trạng thái nếu có).
+- Giữ status tiếng Anh (To Do, In Progress, Done...).
+- Không bịa nội dung ngoài dữ liệu cung cấp; ưu tiên thông tin kết quả/tiến độ chính.
+
+Context per user:
+{{USERS_BLOCK}}
+
+Định dạng:
+- Mỗi người một khối, bắt đầu bằng heading tên người.
+- Dưới heading là bullet list ngắn gọn các việc trong ngày.

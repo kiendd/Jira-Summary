@@ -1,25 +1,43 @@
-import { DateTime } from 'luxon';
 import { config } from './config.js';
 import { loadTemplate } from './prompt-loader.js';
 
-const actionLine = (action) => {
-  const atLocal = DateTime.fromISO(action.at || action.details?.startedLocal, { zone: 'utc' })
-    .setZone(config.timezone)
-    .toFormat('HH:mm');
-  if (action.type === 'status-change') {
-    return `- [${atLocal}] ${action.issueKey} ${action.details.from} -> ${action.details.to} | ${action.issueSummary}`;
+const buildIssueLines = (entry, limit = 6) => {
+  const byIssue = new Map();
+  for (const action of entry.actions) {
+    const key = action.issueKey;
+    if (!byIssue.has(key)) {
+      byIssue.set(key, {
+        key,
+        summary: action.issueSummary,
+        status: null,
+      });
+    }
+    if (action.type === 'status-change' && action.details?.to) {
+      const current = byIssue.get(key);
+      current.status = action.details.to;
+    }
   }
-  if (action.type === 'comment') {
-    return `- [${atLocal}] comment ${action.issueKey}: ${action.details.excerpt ?? ''}`;
-  }
-  if (action.type === 'worklog') {
-    const mins = Math.round((action.details.timeSpentSeconds || 0) / 60);
-    return `- [${atLocal}] worklog ${mins}m ${action.issueKey}: ${action.issueSummary}`;
-  }
-  if (action.type === 'created') {
-    return `- [${atLocal}] created ${action.issueKey} (${action.issueSummary}) status ${action.details.status || ''}`;
-  }
-  return `- [${atLocal}] ${action.type} ${action.issueKey}: ${action.issueSummary}`;
+  return Array.from(byIssue.values())
+    .slice(0, limit)
+    .map((iss) => {
+      const statusPart = iss.status ? ` (status: ${iss.status})` : '';
+      return `- ${iss.key}: ${iss.summary || ''}${statusPart}`;
+    })
+    .join('\n');
 };
 
-export const buildGlobalPrompt = () => '';
+export const buildGlobalPrompt = (grouped, dateLabel) => {
+  const tmpl = loadTemplate('all-users');
+  const usersBlock = grouped
+    .map((entry) => {
+      const lines = buildIssueLines(entry);
+      return `## ${entry.actor.name}\n${lines}`;
+    })
+    .join('\n\n');
+
+  return tmpl
+    .replace(/{{DATE}}/g, dateLabel)
+    .replace(/{{TIMEZONE}}/g, config.timezone)
+    .replace(/{{PROJECT_KEY}}/g, config.jira.projectKey || '')
+    .replace(/{{USERS_BLOCK}}/g, usersBlock);
+};
