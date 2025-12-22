@@ -28,23 +28,32 @@ export const writeActorList = async (grouped, outputDir = 'output') => {
   }
 
   const seen = new Map();
-  grouped.forEach((entry) => {
-    if (entry.actor?.id) {
-      seen.set(entry.actor.id, { name: entry.actor.name || entry.actor.id, email: entry.actor.email || '' });
+  const mergeUser = (user) => {
+    if (!user) return;
+    const name = user.name || '';
+    const id = user.id && user.id !== 'unknown' ? user.id : '';
+    const email = user.email || '';
+    const key = id ? `id:${id}` : name ? `name:${name.toLowerCase()}` : null;
+    if (!key) return;
+    const existing = seen.get(key);
+    if (!existing) {
+      seen.set(key, { id, name, email });
+    } else {
+      if (!existing.email && email) existing.email = email;
+      if (!existing.name && name) existing.name = name;
+      if (!existing.id && id) existing.id = id;
     }
-  });
+  };
+
+  grouped.forEach((entry) => mergeUser(entry.actor));
 
   const allUsers = await getAllUsersInProject(config.jira.projectKey);
-  allUsers.forEach((u) => {
-    if (!seen.has(u.id)) {
-      seen.set(u.id, { name: u.name, email: u.email || '' });
-    }
-  });
+  allUsers.forEach((u) => mergeUser(u));
 
   const filePath = path.join(outputDir, 'actors.txt');
-  const lines = Array.from(seen.entries())
-    .sort((a, b) => a[1].name.localeCompare(b[1].name))
-    .map(([id, info]) => `${info.name} | ${id} | ${info.email || ''}`);
+  const lines = Array.from(seen.values())
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    .map((info) => `${info.name || ''} | ${info.id || ''} | ${info.email || ''}`);
   fs.writeFileSync(filePath, lines.join('\n'), 'utf8');
   return filePath;
 };
