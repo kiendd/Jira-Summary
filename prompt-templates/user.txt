@@ -4,9 +4,7 @@ User: {{USER_NAME}}
 Project: {{PROJECT_KEY}}
 
 Instructions:
-- Xuất 2 phần:
-  1) Summary: 3-10 bullet ngắn gọn về các việc đã làm trong ngày.
-  2) Status tracking per issue: liệt kê từng issue với chuỗi trạng thái theo thời gian (status tiếng Anh, ví dụ: To Do, In Progress, Done).
+- Summary: 3-10 bullet về các việc đã làm trong ngày.
 - Mỗi bullet nêu issue key + tiêu đề, kết quả chính (done/đang chặn/đang test), trạng thái/diễn tiến, thời gian nếu quan trọng.
 - Ưu tiên kết quả hoàn thành hoặc chặn blocker; tránh lặp lại thông tin.
 - Không bịa nội dung ngoài dữ liệu cung cấp.
