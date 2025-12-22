@@ -157,8 +157,8 @@ export const buildStatusTracking = (actorBlock) => {
     .filter(Boolean);
 
   const trackingBlock = trackingLines.length
-    ? `Chi tiết trạng thái theo issue:\n${trackingLines.join('\n')}`
-    : 'Chi tiết trạng thái theo issue:\n- Không có thay đổi trạng thái.';
+    ? trackingLines.join('\n')
+    : '- Không có thay đổi trạng thái.';
 
   return trackingBlock;
 };

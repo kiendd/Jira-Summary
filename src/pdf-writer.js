@@ -87,10 +87,12 @@ const addActorSection = (doc, entry, summaryText, trackingText) => {
   renderRichText(doc, summaryText || 'No summary');
   doc.moveDown(0.6);
 
-  doc.font(FONT_BOLD).fontSize(12).text('Chi tiết trạng thái theo issue');
-  doc.moveDown(0.2);
-  doc.font(FONT_REGULAR).fontSize(11);
-  renderRichText(doc, trackingText || 'Không có thay đổi trạng thái.');
+  if (trackingText) {
+    doc.font(FONT_BOLD).fontSize(12).text('Chi tiết trạng thái theo issue');
+    doc.moveDown(0.2);
+    doc.font(FONT_REGULAR).fontSize(11);
+    renderRichText(doc, trackingText);
+  }
   doc.moveDown(1);
 };
 
