@@ -7,6 +7,19 @@ const listIssues = (items, limit = 5) => {
   return rest > 0 ? `${shown.join(', ')} +${rest} nữa` : shown.join(', ');
 };
 
+const buildStatusChain = (transitions) => {
+  if (!transitions.length) return '';
+  const sorted = [...transitions].sort((a, b) => (a.at || '').localeCompare(b.at || ''));
+  const chain = [];
+  for (const t of sorted) {
+    const from = t.from || '';
+    const to = t.to || '';
+    if (!chain.length && from) chain.push(from);
+    if (to && to !== chain[chain.length - 1]) chain.push(to);
+  }
+  return chain.filter(Boolean).join(' -> ');
+};
+
 export const buildLocalSummary = (actorBlock) => {
   const byIssue = new Map();
 
@@ -93,7 +106,26 @@ export const buildLocalSummary = (actorBlock) => {
     lines.push('- Không có hoạt động đáng kể trong ngày.');
   }
 
-  return lines.join('\n');
+  // Detail tracking per issue
+  const issues = Array.from(byIssue.values());
+  const trackingLines = issues
+    .map((iss) => {
+      const chain = buildStatusChain(iss.transitions);
+      const parts = [`${iss.key}: ${iss.summary || ''}`.trim()];
+      if (iss.created) parts.push('Created');
+      if (chain) parts.push(`Status: ${chain}`);
+      if (iss.comments) parts.push(`Comments: ${iss.comments}`);
+      if (iss.worklogs) parts.push(`Worklog: ${iss.worklogs} (${secondsToHhmm(iss.workSeconds)})`);
+      return `- ${parts.join(' | ')}`;
+    })
+    .filter(Boolean);
+
+  const summaryBlock = `Tóm tắt trong ngày:\n${lines.join('\n')}`;
+  const trackingBlock = trackingLines.length
+    ? `\nChi tiết trạng thái theo issue:\n${trackingLines.join('\n')}`
+    : '\nChi tiết trạng thái theo issue:\n- Không có thay đổi trạng thái.';
+
+  return `${summaryBlock}${trackingBlock}`;
 };
 
 export const buildIssueSnippets = (actorBlock, limit = 8) => {
