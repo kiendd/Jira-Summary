@@ -7,7 +7,7 @@ import { collectActionsForRange } from './jira-actions.js';
 import { groupActionsByActor } from './group-actions.js';
 import { summarizeWithXlm } from './lmx-client.js';
 import { renderHuman, renderJson } from './render.js';
-import { buildLocalSummary, buildIssueSnippets } from './summary-builder.js';
+import { buildLocalSummary, buildIssueSnippets, buildStatusTracking } from './summary-builder.js';
 import { writePdfReport } from './pdf-writer.js';
 import { buildGlobalPrompt } from './global-prompt.js';
 import { writePrompt } from './prompt-writer.js';
@@ -45,6 +45,8 @@ const main = async () => {
     if (!summary) summary = buildLocalSummary(entry);
     const issueNotes = buildIssueSnippets(entry);
     if (issueNotes) summary = `${summary}\n\nChi tiết issue:\n${issueNotes}`;
+    const tracking = buildStatusTracking(entry);
+    summary = `${summary}\n\n${tracking}`;
     const totals = `Tổng quan: created ${entry.stats.created}; status-change ${entry.stats.status}; comments ${entry.stats.comments}; worklogs ${entry.stats.worklogs}`;
     summary = `${summary}\n${totals}`;
     summaries.set(entry.actor.id, summary);

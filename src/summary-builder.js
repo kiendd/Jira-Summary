@@ -106,7 +106,41 @@ export const buildLocalSummary = (actorBlock) => {
     lines.push('- Không có hoạt động đáng kể trong ngày.');
   }
 
-  // Detail tracking per issue
+  return `Tóm tắt trong ngày:\n${lines.join('\n')}`;
+};
+
+export const buildStatusTracking = (actorBlock) => {
+  const byIssue = new Map();
+
+  for (const action of actorBlock.actions) {
+    const key = action.issueKey;
+    if (!byIssue.has(key)) {
+      byIssue.set(key, {
+        key: action.issueKey,
+        summary: action.issueSummary,
+        created: false,
+        transitions: [],
+        comments: 0,
+        worklogs: 0,
+        workSeconds: 0,
+      });
+    }
+    const entry = byIssue.get(key);
+    if (action.type === 'created') entry.created = true;
+    if (action.type === 'status-change') {
+      entry.transitions.push({
+        from: action.details?.from,
+        to: action.details?.to,
+        at: action.at,
+      });
+    }
+    if (action.type === 'comment') entry.comments += 1;
+    if (action.type === 'worklog') {
+      entry.worklogs += 1;
+      entry.workSeconds += Number(action.details?.timeSpentSeconds || 0);
+    }
+  }
+
   const issues = Array.from(byIssue.values());
   const trackingLines = issues
     .map((iss) => {
@@ -120,12 +154,11 @@ export const buildLocalSummary = (actorBlock) => {
     })
     .filter(Boolean);
 
-  const summaryBlock = `Tóm tắt trong ngày:\n${lines.join('\n')}`;
   const trackingBlock = trackingLines.length
-    ? `\nChi tiết trạng thái theo issue:\n${trackingLines.join('\n')}`
-    : '\nChi tiết trạng thái theo issue:\n- Không có thay đổi trạng thái.';
+    ? `Chi tiết trạng thái theo issue:\n${trackingLines.join('\n')}`
+    : 'Chi tiết trạng thái theo issue:\n- Không có thay đổi trạng thái.';
 
-  return `${summaryBlock}${trackingBlock}`;
+  return trackingBlock;
 };
 
 export const buildIssueSnippets = (actorBlock, limit = 8) => {
