@@ -4,7 +4,7 @@ User: {{USER_NAME}}
 Project: {{PROJECT_KEY}}
 
 Instructions:
-- Tóm tắt 3-6 bullet ngắn gọn cho người dùng này.
+- Tóm tắt 3-10 bullet ngắn gọn cho người dùng này.
 - Mỗi bullet nêu issue key + tiêu đề, kết quả chính (done/đang chặn/đang test), trạng thái/diễn tiến, thời gian nếu quan trọng.
 - Ưu tiên kết quả hoàn thành hoặc chặn blocker; tránh lặp lại thông tin.
 - Không bịa nội dung ngoài dữ liệu cung cấp.
