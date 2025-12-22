@@ -161,7 +161,7 @@ export const buildStatusTracking = (actorBlock) => {
   return trackingBlock;
 };
 
-export const buildIssueSnippets = (actorBlock, limit = 8) => {
+export const buildIssuesList = (actorBlock, limit = 8) => {
   const byIssue = new Map();
   for (const action of actorBlock.actions) {
     if (!byIssue.has(action.issueKey)) {
@@ -172,10 +172,6 @@ export const buildIssueSnippets = (actorBlock, limit = 8) => {
     }
   }
   const list = Array.from(byIssue.values()).slice(0, limit);
-  return list
-    .map((it) => {
-      const parts = [`${it.key}: ${it.summary || ''}`.trim()];
-      return `- ${parts.join(' | ')}`;
-    })
-    .join('\n');
+  if (!list.length) return '';
+  return list.map((it) => `- ${it.key}: ${it.summary || ''}`).join('\n');
 };
