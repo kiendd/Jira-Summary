@@ -1,8 +1,7 @@
-import { config } from './config.js';
 import { secondsToHhmm } from './utils.js';
 
-export const renderHuman = ({ dateLabel, projectKey, grouped, summaries }) => {
-  console.log(`\nJira action summary for project ${projectKey} on ${dateLabel} (timezone ${config.timezone})`);
+export const renderHuman = ({ dateLabel, projectKey, grouped, summaries, timezone }) => {
+  console.log(`\nJira action summary for project ${projectKey} on ${dateLabel} (timezone ${timezone})`);
   if (!grouped.length) {
     console.log('Không có hoạt động trong ngày.');
     return;
@@ -24,11 +23,11 @@ export const renderHuman = ({ dateLabel, projectKey, grouped, summaries }) => {
   }
 };
 
-export const renderJson = ({ dateLabel, projectKey, grouped }) => {
+export const renderJson = ({ dateLabel, projectKey, grouped, timezone }) => {
   const output = {
     project: projectKey,
     date: dateLabel,
-    timezone: config.timezone,
+    timezone,
     users: grouped.map((entry) => ({
       actor: entry.actor,
       stats: entry.stats,

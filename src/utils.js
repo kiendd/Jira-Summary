@@ -1,12 +1,10 @@
-import { config } from './config.js';
-
 export const truncate = (text, max = 140) => {
   if (!text) return '';
   if (text.length <= max) return text;
   return `${text.slice(0, max - 3)}...`;
 };
 
-export const buildIssueUrl = (issueKey) => `${config.jira.baseUrl}/browse/${issueKey}`;
+export const buildIssueUrl = (issueKey, jiraBaseUrl) => `${jiraBaseUrl}/browse/${issueKey}`;
 
 export const secondsToHhmm = (seconds) => {
   if (!seconds) return '0m';

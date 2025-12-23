@@ -1,6 +1,3 @@
-import { config } from './config.js';
-import { loadTemplate } from './prompt-loader.js';
-
 const buildIssueLines = (entry, limit = 6) => {
   const byIssue = new Map();
   for (const action of entry.actions) {

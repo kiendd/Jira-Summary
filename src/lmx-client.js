@@ -1,17 +1,16 @@
 import { DateTime } from 'luxon';
-import { config } from './config.js';
 import { logger } from './logger.js';
 import { truncate } from './utils.js';
 import { buildLocalSummary } from './summary-builder.js';
 import { writePrompt } from './prompt-writer.js';
 import { loadTemplate } from './prompt-loader.js';
 
-const buildPrompt = (actorBlock, dateLabel) => {
+const buildPrompt = (actorBlock, dateLabel, projectConfig) => {
   const tmpl = loadTemplate('user');
   const lines = actorBlock.actions
     .map((action) => {
       const atLocal = DateTime.fromISO(action.at || action.details?.startedLocal, { zone: 'utc' })
-        .setZone(config.timezone)
+        .setZone(projectConfig.timezone)
         .toFormat('HH:mm');
       if (action.type === 'status-change') {
         return `- [${atLocal}] ${action.issueKey} ${action.details.from} -> ${action.details.to} | ${action.issueSummary}`;
@@ -31,23 +30,23 @@ const buildPrompt = (actorBlock, dateLabel) => {
     .join('\n');
   return tmpl
     .replace(/{{DATE}}/g, dateLabel)
-    .replace(/{{TIMEZONE}}/g, config.timezone)
+    .replace(/{{TIMEZONE}}/g, projectConfig.timezone)
     .replace(/{{USER_NAME}}/g, actorBlock.actor.name || '')
-    .replace(/{{PROJECT_KEY}}/g, config.jira.projectKey || '')
+    .replace(/{{PROJECT_KEY}}/g, projectConfig.jira.projectKey || '')
     .replace(/{{ACTION_LINES}}/g, lines);
 };
 
-const buildBody = (url, prompt) => {
+const buildBody = (url, prompt, projectConfig) => {
   const isChat = url.includes('/chat/completions');
   if (isChat) {
     return {
-      model: config.lmx.model || undefined,
+      model: projectConfig.lmx.model || undefined,
       messages: [{ role: 'user', content: prompt }],
       stream: false,
     };
   }
   return {
-    model: config.lmx.model || undefined,
+    model: projectConfig.lmx.model || undefined,
     prompt,
     stream: false,
   };
@@ -66,8 +65,8 @@ const extractSummary = (data) => {
   return '';
 };
 
-const tryCallLmx = async (url, prompt) => {
-  const body = buildBody(url, prompt);
+const tryCallLmx = async (url, prompt, projectConfig) => {
+  const body = buildBody(url, prompt, projectConfig);
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -82,12 +81,12 @@ const tryCallLmx = async (url, prompt) => {
   return String(summary).trim();
 };
 
-export const summarizeWithXlm = async (actorBlock, dateLabel, { requireXlm } = {}) => {
-  const prompt = buildPrompt(actorBlock, dateLabel);
+export const summarizeWithXlm = async (actorBlock, dateLabel, projectConfig, { requireXlm } = {}) => {
+  const prompt = buildPrompt(actorBlock, dateLabel, projectConfig);
   writePrompt(actorBlock.actor.name, prompt);
-  const base = config.lmx.baseUrl;
+  const base = projectConfig.lmx.baseUrl;
   const urls = [
-    `${base}${config.lmx.path}`,
+    `${base}${projectConfig.lmx.path}`,
     `${base}/v1/chat/completions`,
     `${base}/v1/completions`,
   ].filter((v, idx, arr) => v && arr.indexOf(v) === idx);
@@ -95,7 +94,7 @@ export const summarizeWithXlm = async (actorBlock, dateLabel, { requireXlm } = {
   let lastErr = null;
   for (const url of urls) {
     try {
-      const result = await tryCallLmx(url, prompt);
+      const result = await tryCallLmx(url, prompt, projectConfig);
       logger.info({ url }, 'LMX summarize succeeded');
       return result;
     } catch (err) {

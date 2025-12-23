@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { config } from './config.js';
 import { getAllUsersInProject } from './jira-client.js';
 
 const matchUser = (entry, token) => {
@@ -8,21 +7,17 @@ const matchUser = (entry, token) => {
   return norm(entry.actor?.name) === norm(token) || norm(entry.actor?.id) === norm(token);
 };
 
-export const applyUserFilters = (grouped) => {
-  const include = config.filters.includeUsers;
-  const exclude = config.filters.excludeUsers;
+export const applyUserFilters = (grouped, users) => {
+  const include = users || [];
   return grouped.filter((entry) => {
     if (include.length && !include.some((t) => matchUser(entry, t))) {
-      return false;
-    }
-    if (exclude.length && exclude.some((t) => matchUser(entry, t))) {
       return false;
     }
     return true;
   });
 };
 
-export const writeActorList = async (grouped, outputDir = 'output') => {
+export const writeActorList = async (grouped, projectConfig, jiraClient, outputDir = 'output') => {
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
@@ -47,10 +42,11 @@ export const writeActorList = async (grouped, outputDir = 'output') => {
 
   grouped.forEach((entry) => mergeUser(entry.actor));
 
-  const allUsers = await getAllUsersInProject(config.jira.projectKey);
+  const allUsers = await getAllUsersInProject(projectConfig.jira.projectKey, jiraClient, projectConfig.maxConcurrency);
   allUsers.forEach((u) => mergeUser(u));
 
-  const filePath = path.join(outputDir, 'actors.txt');
+  const fileName = `actors-${projectConfig.jira.projectKey}.txt`;
+  const filePath = path.join(outputDir, fileName);
   const lines = Array.from(seen.values())
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
     .map((info) => `${info.name || ''} | ${info.id || ''} | ${info.email || ''}`);

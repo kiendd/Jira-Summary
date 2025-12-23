@@ -1,12 +1,11 @@
 import path from 'path';
 import { createRequire } from 'module';
-import { config } from './config.js';
 import { logger } from './logger.js';
 
 const require = createRequire(import.meta.url);
 
 const formatTotals = (stats) =>
-  `created ${stats.created}; status ${stats.status}; comments ${stats.comments}; worklogs ${stats.worklogs}`;
+  `🆕 ${stats.created} · 🔄 ${stats.status} · 💬 ${stats.comments} · ⏱️ ${stats.worklogs}`;
 
 const buildMessage = ({ targets }) => {
   const noActions = [];
@@ -29,38 +28,39 @@ const buildMessage = ({ targets }) => {
   return parts.filter(Boolean).join('\n');
 };
 
-export const sendFchatReport = async ({ projectKey, dateLabel, targets, summaries, pdfPath }) => {
-  if (!config.fchat.enabled) return;
-  if (!config.fchat.token || !config.fchat.groupId) {
+export const sendFchatReport = async ({ projectConfig, dateLabel, targets, pdfPath }) => {
+  const { fchat } = projectConfig;
+  if (!fchat.enabled) return;
+  if (!fchat.token || !fchat.groupId) {
     logger.warn('FChat enabled but missing FCHAT_TOKEN or FCHAT_GROUP_ID');
     return;
   }
 
   const { FChatBot } = require('fchat-bot-api');
-  const bot = new FChatBot(config.fchat.token, {
-    baseURL: config.fchat.baseUrl || FChatBot.prodBaseUrl(),
-    timeoutMs: config.fchat.timeoutMs,
+  const bot = new FChatBot(fchat.token, {
+    baseURL: fchat.baseUrl || FChatBot.prodBaseUrl(),
+    timeoutMs: fchat.timeoutMs,
   });
 
-  if (config.fchat.sendText) {
+  if (fchat.sendText) {
     const [year, month, day] = dateLabel.split('-');
     const formatted = day && month && year ? `${day}/${month}/${year}` : dateLabel;
-    const template = config.fchat.headerTemplate || 'Con gửi tổng hợp action trên JIRA ngày {date}';
+    const template = fchat.headerTemplate || 'Con gửi tổng hợp action trên JIRA ngày {date}';
     const header = template.replace(/\{date\}/g, formatted);
     const body = buildMessage({ targets });
     const message = body ? `${header}\n\n${body}` : header;
     try {
-      await bot.sendMessage(config.fchat.groupId, message);
+      await bot.sendMessage(fchat.groupId, message);
       logger.info('FChat text message sent');
     } catch (err) {
       logger.warn({ err: err.message }, 'Failed to send FChat text message');
     }
   }
 
-  if (config.fchat.sendPdf && pdfPath) {
+  if (fchat.sendPdf && pdfPath) {
     try {
       const absPath = path.isAbsolute(pdfPath) ? pdfPath : path.join(process.cwd(), pdfPath);
-      await bot.sendFile(config.fchat.groupId, absPath);
+      await bot.sendFile(fchat.groupId, absPath);
       logger.info('FChat PDF sent');
     } catch (err) {
       logger.warn({ err: err.message }, 'Failed to send FChat PDF');

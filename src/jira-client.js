@@ -1,34 +1,37 @@
 import { Version2Client } from 'jira.js';
 import pLimit from 'p-limit';
-import { config } from './config.js';
 import { logger } from './logger.js';
 import { toJiraDateTime } from './time.js';
 
-const isPat = config.jira.authType === 'pat';
-const limit = pLimit(config.maxConcurrency || 5);
+export const createJiraClient = (projectConfig) => {
+  const isPat = projectConfig.jira.authType === 'pat';
+  return new Version2Client({
+    host: projectConfig.jira.baseUrl,
+    authentication: isPat
+      ? { oauth2: { accessToken: projectConfig.jira.apiToken } }
+      : { basic: { email: projectConfig.jira.email, apiToken: projectConfig.jira.apiToken } },
+  });
+};
 
-export const jiraClient = new Version2Client({
-  host: config.jira.baseUrl,
-  authentication: isPat
-    ? { oauth2: { accessToken: config.jira.apiToken } }
-    : { basic: { email: config.jira.email, apiToken: config.jira.apiToken } },
-});
-
-export const searchIssuesUpdatedInRange = async ({ projectKey, start, end }) => {
+export const searchIssuesUpdatedInRange = async ({ projectKey, start, end, jiraClient, maxConcurrency = 5 }) => {
   const jql = `project = ${projectKey} AND updated >= "${toJiraDateTime(
     start
   )}" AND updated < "${toJiraDateTime(end)}" ORDER BY updated ASC`;
+  const limit = pLimit(maxConcurrency);
   const maxResults = 50;
   const keys = [];
   let startAt = 0;
 
   while (true) {
-    const res = await jiraClient.issueSearch.searchForIssuesUsingJql({
-      jql,
-      startAt,
-      maxResults,
-      fields: ['summary', 'updated'],
-    });
+    const res = await limit(() =>
+      jiraClient.issueSearch.searchForIssuesUsingJql({
+        jql,
+        startAt,
+        maxResults,
+        fields: ['summary', 'updated'],
+      })
+    );
+
     const issues = Array.isArray(res.issues) ? res.issues : [];
     keys.push(...issues.map((it) => ({ key: it.key, updated: it.fields?.updated })));
 
@@ -41,7 +44,7 @@ export const searchIssuesUpdatedInRange = async ({ projectKey, start, end }) => 
   return keys;
 };
 
-const fetchAllComments = async (issueKey, initial) => {
+const fetchAllComments = async (issueKey, initial, jiraClient) => {
   const total = initial?.total ?? 0;
   const collected = initial?.comments ? [...initial.comments] : [];
   if (total <= collected.length) return collected;
@@ -64,7 +67,7 @@ const fetchAllComments = async (issueKey, initial) => {
   return collected;
 };
 
-const fetchAllWorklogs = async (issueKey, initial) => {
+const fetchAllWorklogs = async (issueKey, initial, jiraClient) => {
   const total = initial?.total ?? 0;
   const collected = initial?.worklogs ? [...initial.worklogs] : [];
   if (total <= collected.length) return collected;
@@ -87,7 +90,7 @@ const fetchAllWorklogs = async (issueKey, initial) => {
   return collected;
 };
 
-export const getIssueWithDetails = async (issueKey) => {
+export const getIssueWithDetails = async (issueKey, jiraClient) => {
   const res = await jiraClient.issues.getIssue({
     issueIdOrKey: issueKey,
     fields: [
@@ -105,8 +108,8 @@ export const getIssueWithDetails = async (issueKey) => {
     expand: ['changelog'],
   });
 
-  const comments = await fetchAllComments(issueKey, res.fields?.comment);
-  const worklogs = await fetchAllWorklogs(issueKey, res.fields?.worklog);
+  const comments = await fetchAllComments(issueKey, res.fields?.comment, jiraClient);
+  const worklogs = await fetchAllWorklogs(issueKey, res.fields?.worklog, jiraClient);
 
   return {
     id: res.id,
@@ -117,8 +120,9 @@ export const getIssueWithDetails = async (issueKey) => {
     worklogs,
   };
 };
-export const getAllUsersInProject = async (projectKey) => {
-  // Fetch project roles to get members; fallback to search users by group/permission is Jira-specific.
+
+export const getAllUsersInProject = async (projectKey, jiraClient, maxConcurrency = 5) => {
+  const limit = pLimit(maxConcurrency);
   try {
     const roles = await jiraClient.projectRoles.getProjectRoles({
       projectIdOrKey: projectKey,

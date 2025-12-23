@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import PDFDocument from 'pdfkit';
 import { secondsToHhmm } from './utils.js';
-import { config } from './config.js';
 
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) {
@@ -46,10 +45,10 @@ const renderRichText = (doc, summaryText) => {
   });
 };
 
-const addHeader = (doc, projectKey, dateLabel, warnings) => {
+const addHeader = (doc, projectKey, dateLabel, timezone, warnings) => {
   doc.font(FONT_BOLD).fontSize(20).text(`Jira Summary - ${projectKey}`, { align: 'left' });
   doc.moveDown(0.5);
-  doc.font(FONT_REGULAR).fontSize(12).text(`Date: ${dateLabel} (Timezone: ${config.timezone})`);
+  doc.font(FONT_REGULAR).fontSize(12).text(`Date: ${dateLabel} (Timezone: ${timezone})`);
   doc.moveDown(0.5);
   doc.text(`Generated at: ${new Date().toISOString()}`);
   if (warnings && warnings.length) {
@@ -104,7 +103,16 @@ const addActorSection = (doc, entry, summaryText, trackingText) => {
   doc.moveDown(1);
 };
 
-export const writePdfReport = async ({ dateLabel, projectKey, grouped, summaries, trackings, outputDir = 'output', warnings = [] }) => {
+export const writePdfReport = async ({
+  dateLabel,
+  projectKey,
+  timezone,
+  grouped,
+  summaries,
+  trackings,
+  outputDir = 'output',
+  warnings = [],
+}) => {
   ensureDir(outputDir);
   const fileName = `summary-${projectKey}-${dateLabel}.pdf`;
   const filePath = path.join(outputDir, fileName);
@@ -113,7 +121,7 @@ export const writePdfReport = async ({ dateLabel, projectKey, grouped, summaries
   const writeStream = fs.createWriteStream(filePath);
   doc.pipe(writeStream);
 
-  addHeader(doc, projectKey, dateLabel, warnings);
+  addHeader(doc, projectKey, dateLabel, timezone, warnings);
   addMenu(doc, grouped);
 
   grouped.forEach((entry, idx) => {

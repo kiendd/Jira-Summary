@@ -1,34 +1,39 @@
 ## Jira Summary
 
-CLI tóm tắt hành động Jira theo người trong một ngày (mặc định hôm nay, múi giờ GMT+7) và gọi LMX tại `http://localhost:8002` để rút gọn bullet.
+CLI tóm tắt hành động Jira theo người trong một ngày (mặc định hôm nay, GMT+7) và có thể gửi báo cáo PDF/text qua FChat.
 
-### Cấu hình
+### Cấu hình (YAML)
 1. Cài dependency: `npm install`
-2. Tạo file `.env` từ mẫu:
+2. Tạo file `config.yaml` từ mẫu:  
    ```bash
-   cp .env.example .env
+   cp config.example.yaml config.yaml
    ```
-   Điền:
-   - `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_AUTH_TYPE=basic|pat`
-   - `JIRA_PROJECT_KEY` (mặc định cho CLI, có thể override bằng `--project`)
-   - `LMX_BASE_URL` (mặc định `http://localhost:8002`), `LMX_PATH` (mặc định `/v1/chat/completions`), `LMX_MODEL` nếu service yêu cầu.
-   - Lọc user: `USER_INCLUDE` (danh sách tên/id, cách nhau bằng dấu phẩy) để chỉ tổng hợp user mong muốn; `USER_EXCLUDE` để bỏ qua.
-   - Gửi FChat: bật `FCHAT_ENABLED=true`, cấu hình `FCHAT_TOKEN`, `FCHAT_GROUP_ID`, tuỳ chọn `FCHAT_BASE_URL`. Bật `FCHAT_SEND_TEXT` để gửi summary dạng text, `FCHAT_SEND_PDF` để gửi PDF. Có thể tăng `FCHAT_TIMEOUT_MS` (ms) để tránh timeout khi gửi file lớn. Tuỳ chỉnh câu mở đầu với `FCHAT_HEADER_TEMPLATE` (dùng `{date}` để chèn ngày dd/mm/yyyy).
-   - PDF tiếng Việt: font NotoSans đã tải sẵn vào `fonts/`. Nếu bị xóa hãy tải lại `.ttf` trước khi xuất PDF.
+3. Chỉnh `config.yaml`:
+   - `defaultProject` (tuỳ chọn): project được dùng khi không truyền `--project`; nếu không đặt và không có `DEFAULT_PROJECT`, CLI sẽ chạy tất cả project trong file.
+   - `defaults`: cấu hình chung cho tất cả project (timezone, maxConcurrency, LMX, FChat mặc định, và có thể đặt Jira chung ở `defaults.jira`).
+   - `projects.<ID>`: cấu hình riêng cho từng project, override được defaults:
+     - `enabled`: đặt `false` để tắt project (sẽ bị bỏ qua kể cả khi chạy all; nếu chỉ định qua `--project` và project bị tắt sẽ cảnh báo và bỏ qua).
+     - `jira`: chỉ cần `projectKey` nếu đã đặt Jira chung ở `defaults.jira`; nếu không, khai báo đầy đủ `baseUrl`, `email`, `apiToken`, `authType=basic|pat`.
+     - `fchat`: `enabled`, `token`, `groupId`, `sendText`, `sendPdf`, `headerTemplate`, `timeoutMs`, `baseUrl`.
+     - `users`: danh sách accountId/displayName cần tổng hợp; muốn bỏ ai thì comment dòng đó.
+4. (Tuỳ chọn) `.env` chỉ còn 2 biến:
+   - `PROJECTS_CONFIG` (đường dẫn tới file YAML nếu không dùng tên mặc định `config.yaml`)
+   - `DEFAULT_PROJECT` (override `defaultProject` trong YAML)
 
 ### Chạy
-- Mặc định (hôm nay, project từ env): `npm start`
+- Mặc định: nếu không có `--project` và không đặt `defaultProject`/`DEFAULT_PROJECT`, CLI sẽ chạy tất cả project trong file YAML.
 - Chỉ định ngày: `npm start -- --date 2024-05-15`
-- Chỉ định project: `npm start -- --project DEV`
+- Chỉ định project: `npm start -- --project DEV` (hoặc nhiều project: `--project OPS,DEV`, hoặc toàn bộ: `--project all`)
 - Xuất JSON thô: `npm start -- --json`
-- Bỏ qua XLM: `npm start -- --skip-xlm`
-- Bắt buộc LMX (fail nếu LMX lỗi): đặt `LMX_REQUIRED=true` trong env hoặc flag `--require-xlm`
+- Bỏ qua LMX: `npm start -- --skip-xlm`
+- Bắt buộc LMX (fail nếu LMX lỗi): flag `--require-xlm` hoặc đặt `lmx.required: true` cho project.
 
 ### Đầu ra
-- Nhóm theo người, hiển thị bullet tóm tắt từ XLM và thống kê: số issue tạo, chuyển trạng thái, comment, worklog (kèm tổng thời gian).
-- Nếu không có hoạt động: in thông báo rỗng.
+- Nhóm theo người, hiển thị bullet tóm tắt (LMX hoặc local fallback) và thống kê: số issue tạo, chuyển trạng thái, comment, worklog (kèm tổng thời gian).
+- Xuất PDF trong thư mục `output/summary-<PROJECT>-<DATE>.pdf`; nếu FChat bật, sẽ gửi text và/hoặc PDF tới group được cấu hình.
+- Ghi log danh sách actor vào `output/actors-<PROJECT>.txt` để tiện mapping user.
 
-### Ghi chú triển khai
-- Thời gian tính theo `Asia/Ho_Chi_Minh`, JQL gửi với offset GMT+7 để đảm bảo lọc đúng ngày.
-- Thu thập hành động: issue tạo, chuyển trạng thái (từ changelog), comment, worklog (lấy đủ trang nếu >50).
-- Nếu XLM trả lỗi, CLI sẽ trả về prompt raw để người dùng vẫn xem được nội dung cần tóm tắt.
+### Ghi chú
+- Thời gian tính theo `timezone` của project, JQL gửi với offset GMT+7 mặc định.
+- Thu thập hành động: issue tạo, chuyển trạng thái, comment, worklog (lấy đủ trang nếu >50).
+- Nếu LMX trả lỗi hoặc unavailable, sẽ fallback sang `buildLocalSummary` trừ khi `lmx.required` bật.

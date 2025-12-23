@@ -1,0 +1,42 @@
+defaults:
+  timezone: Asia/Ho_Chi_Minh
+  maxConcurrency: 5
+  jira:
+    baseUrl: https://your-domain.atlassian.net
+    email: you@example.com
+    apiToken: your-api-token
+    authType: basic
+  lmx:
+    baseUrl: http://localhost:8002
+    path: /v1/chat/completions
+    model: ""
+    required: false
+  fchat:
+    enabled: true
+    baseUrl: ""
+    sendText: true
+    sendPdf: true
+    timeoutMs: 30000
+
+projects:
+  OPS:
+    enabled: true
+    jira:
+      projectKey: OPS
+    fchat:
+      token: your-fchat-token
+      groupId: your-group-id
+      headerTemplate: "Con gửi tổng hợp action OPS ngày {date}"
+    users:
+      - A
+      - B
+
+  DEV:
+    enabled: true
+    jira:
+      projectKey: DEV
+    fchat:
+      token: your-dev-fchat-token
+      groupId: your-dev-group-id
+      headerTemplate: "Con gửi tổng hợp action DEV ngày {date}"
+    users: []
