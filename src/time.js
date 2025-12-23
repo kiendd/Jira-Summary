@@ -12,8 +12,7 @@ export const computeDayRange = (dateInput, timezone) => {
   return { start, end };
 };
 
-export const toJiraDateTime = (dt) =>
-  dt.toUTC().toFormat('yyyy-LL-dd HH:mm');
+export const toJiraDateTime = (dt) => dt.toFormat('yyyy-LL-dd HH:mm');
 
 export const formatLocalTime = (isoString, timezone) => {
   const dt = DateTime.fromISO(isoString, { zone: 'utc' }).setZone(timezone);

@@ -75,11 +75,13 @@ const fetchAllWorklogs = async (issueKey, initial, jiraClient) => {
   let startAt = collected.length;
   const maxResults = 100;
   while (startAt < total) {
-    const res = await jiraClient.issueWorklogs.getIssueWorklogs({
-      issueIdOrKey: issueKey,
-      startAt,
-      maxResults,
-    });
+    const res = await jiraClient.issueWorklogs.getIssueWorklog(
+      {
+        issueIdOrKey: issueKey,
+        startAt,
+        maxResults,
+      }
+    );
     if (Array.isArray(res.worklogs)) {
       collected.push(...res.worklogs);
       startAt += res.worklogs.length;
