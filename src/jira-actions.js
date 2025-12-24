@@ -3,7 +3,7 @@ import pLimit from 'p-limit';
 import { searchIssuesUpdatedInRange, getIssueWithDetails } from './jira-client.js';
 import { logger } from './logger.js';
 import { isWithinRange } from './time.js';
-import { truncate, buildIssueUrl } from './utils.js';
+import { truncate, buildIssueUrl, buildCommentUrl } from './utils.js';
 
 const safeText = (value) => {
   if (!value) return '';
@@ -73,6 +73,7 @@ const addCommentActions = (issue, range, actions, timezone, jiraBaseUrl) => {
   const comments = issue.comments || [];
   for (const comment of comments) {
     if (!isWithinRange(comment.created, range.start, range.end)) continue;
+    const commentId = comment.id || comment.commentId;
     actions.push({
       type: 'comment',
       at: normalizeTimestamp(comment.created),
@@ -84,6 +85,8 @@ const addCommentActions = (issue, range, actions, timezone, jiraBaseUrl) => {
       details: {
         excerpt: truncate(safeText(comment.body), 200),
         createdLocal: DateTime.fromISO(comment.created).setZone(timezone).toFormat('HH:mm'),
+        commentId,
+        commentUrl: buildCommentUrl(issue.key, commentId, jiraBaseUrl),
       },
     });
   }

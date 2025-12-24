@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon';
 import { logger } from './logger.js';
-import { truncate } from './utils.js';
+import { truncate, sanitizeIssueSummary } from './utils.js';
 import { buildLocalSummary } from './summary-builder.js';
 import { writePrompt } from './prompt-writer.js';
 import { loadTemplate } from './prompt-loader.js';
@@ -12,20 +12,26 @@ const buildPrompt = (actorBlock, dateLabel, projectConfig) => {
       const atLocal = DateTime.fromISO(action.at || action.details?.startedLocal, { zone: 'utc' })
         .setZone(projectConfig.timezone)
         .toFormat('HH:mm');
+      const summary = sanitizeIssueSummary(action.issueSummary);
       if (action.type === 'status-change') {
-        return `- [${atLocal}] ${action.issueKey} ${action.details.from} -> ${action.details.to} | ${action.issueSummary}`;
+        return `- [${atLocal}] ${action.issueKey} status ${action.details.from} -> ${action.details.to}${
+          summary ? ` | ${summary}` : ''
+        }`;
       }
       if (action.type === 'comment') {
         return `- [${atLocal}] comment ${action.issueKey}: ${truncate(action.details.excerpt, 160)}`;
       }
       if (action.type === 'worklog') {
         const mins = Math.round((action.details.timeSpentSeconds || 0) / 60);
-        return `- [${atLocal}] worklog ${mins}m ${action.issueKey}: ${action.issueSummary}`;
+        return `- [${atLocal}] worklog ${mins}m ${action.issueKey}${summary ? `: ${summary}` : ''}`;
       }
       if (action.type === 'created') {
-        return `- [${atLocal}] created ${action.issueKey} (${action.issueSummary}) status ${action.details.status || ''}`;
+        const status = action.details.status || '';
+        const title = summary ? ` (${summary})` : '';
+        const statusPart = status ? ` status ${status}` : '';
+        return `- [${atLocal}] created ${action.issueKey}${title}${statusPart}`;
       }
-      return `- [${atLocal}] ${action.type} ${action.issueKey}: ${action.issueSummary}`;
+      return `- [${atLocal}] ${action.type} ${action.issueKey}${summary ? `: ${summary}` : ''}`;
     })
     .join('\n');
   return tmpl

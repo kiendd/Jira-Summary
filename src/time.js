@@ -24,3 +24,17 @@ export const isWithinRange = (isoString, start, end) => {
   if (!dt.isValid) return false;
   return dt >= start.toUTC() && dt < end.toUTC();
 };
+
+export const countBusinessDaysSince = (fromDate, toDate, timezone) => {
+  const start = DateTime.fromISO(fromDate, { zone: timezone }).startOf('day');
+  const end = DateTime.fromISO(toDate, { zone: timezone }).startOf('day');
+  if (!start.isValid || !end.isValid) return null;
+  if (end <= start) return 0;
+  let count = 0;
+  let cursor = start.plus({ days: 1 });
+  while (cursor <= end) {
+    if (cursor.weekday <= 5) count += 1;
+    cursor = cursor.plus({ days: 1 });
+  }
+  return count;
+};

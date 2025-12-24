@@ -1,10 +1,13 @@
-import { secondsToHhmm, truncate } from './utils.js';
+import { secondsToHhmm, truncate, sanitizeIssueSummary } from './utils.js';
 
 const listIssues = (items, limit = 5) => {
   if (!items.length) return '';
-  const shown = items.slice(0, limit).map((it) => `${it.key}${it.summary ? ` (${it.summary})` : ''}`);
+  const shown = items.slice(0, limit).map((it) => {
+    const summary = sanitizeIssueSummary(it.summary);
+    return `${it.key}${summary ? ` (${summary})` : ''}`;
+  });
   const rest = items.length - shown.length;
-  return rest > 0 ? `${shown.join(', ')} +${rest} nữa` : shown.join(', ');
+  return rest > 0 ? `${shown.join(', ')} +${rest} more` : shown.join(', ');
 };
 
 const buildStatusChain = (transitions) => {
@@ -40,7 +43,7 @@ export const buildLocalSummary = (actorBlock) => {
     if (!byIssue.has(key)) {
       byIssue.set(key, {
         key,
-        summary: action.issueSummary,
+        summary: sanitizeIssueSummary(action.issueSummary),
         created: false,
         transitions: [],
         comments: 0,
@@ -50,7 +53,7 @@ export const buildLocalSummary = (actorBlock) => {
     }
     const entry = byIssue.get(key);
     if (!entry.description && action.issueDescription) {
-      entry.description = truncate(action.issueDescription, 180);
+      entry.description = truncate(sanitizeIssueSummary(action.issueDescription), 180);
     }
     if (action.type === 'created') {
       entry.created = true;
@@ -87,32 +90,32 @@ export const buildLocalSummary = (actorBlock) => {
 
   const lines = [];
   if (createdIssues.length) {
-    lines.push(`- Tạo mới: ${listIssues(createdIssues, 6)}`);
+    lines.push(`- Created: ${listIssues(createdIssues, 6)}`);
   }
 
   if (transitionGroups.size) {
     const sorted = Array.from(transitionGroups.entries()).sort((a, b) => b[1].length - a[1].length);
     const maxGroups = 6;
     sorted.slice(0, maxGroups).forEach(([label, issues]) => {
-      lines.push(`- ${label}: ${listIssues(issues, 5)}`);
+      lines.push(`- Status: ${label}: ${listIssues(issues, 5)}`);
     });
     if (sorted.length > maxGroups) {
-      lines.push(`- +${sorted.length - maxGroups} nhóm chuyển trạng thái khác`);
+      lines.push(`- Other status groups: +${sorted.length - maxGroups}`);
     }
   }
 
   if (commentCount) {
-    lines.push(`- Bình luận: ${commentCount} comment`);
+    lines.push(`- Comments: ${commentCount}`);
   }
   if (worklogCount) {
-    lines.push(`- Worklog: ${worklogCount} lần (${secondsToHhmm(workSeconds)})`);
+    lines.push(`- Worklog: ${worklogCount} entries (${secondsToHhmm(workSeconds)})`);
   }
 
   if (!lines.length) {
-    lines.push('- Không có hoạt động đáng kể trong ngày.');
+    lines.push('- No significant activity today.');
   }
 
-  return `Tóm tắt trong ngày:\n${lines.join('\n')}`;
+  return `Daily summary:\n${lines.join('\n')}`;
 };
 
 export const buildStatusTracking = (actorBlock) => {
@@ -123,47 +126,81 @@ export const buildStatusTracking = (actorBlock) => {
     if (!byIssue.has(key)) {
       byIssue.set(key, {
         key: action.issueKey,
-        summary: action.issueSummary,
-        created: false,
+        summary: sanitizeIssueSummary(action.issueSummary),
+        created: null,
         transitions: [],
-        comments: 0,
-        worklogs: 0,
-        workSeconds: 0,
+        comments: [],
+        worklogs: [],
+        others: [],
       });
     }
     const entry = byIssue.get(key);
-    if (action.type === 'created') entry.created = true;
+    if (action.type === 'created') {
+      entry.created = action.details?.status || '';
+      continue;
+    }
     if (action.type === 'status-change') {
       entry.transitions.push({
         from: action.details?.from,
         to: action.details?.to,
         at: action.at,
       });
+      continue;
     }
-    if (action.type === 'comment') entry.comments += 1;
+    if (action.type === 'comment') {
+      const excerpt = truncate(action.details?.excerpt, 160);
+      if (excerpt) entry.comments.push(excerpt);
+      else entry.comments.push('(no content)');
+      continue;
+    }
     if (action.type === 'worklog') {
-      entry.worklogs += 1;
-      entry.workSeconds += Number(action.details?.timeSpentSeconds || 0);
+      entry.worklogs.push({
+        seconds: Number(action.details?.timeSpentSeconds || 0),
+        note: action.details?.comment ? truncate(action.details.comment, 160) : '',
+      });
+      continue;
     }
+    entry.others.push(action.type || 'update');
   }
 
   const issues = Array.from(byIssue.values());
-  const trackingLines = issues
-    .map((iss) => {
+  if (!issues.length) return '- No changes recorded.';
+
+  const lines = [];
+  issues.forEach((iss) => {
+    const title = iss.summary ? `${iss.key}: ${iss.summary}` : iss.key;
+    lines.push(`- ${title}`);
+
+    if (iss.created !== null) {
+      const statusPart = iss.created ? `: ${iss.created}` : '';
+      lines.push(`  - Created${statusPart}`);
+    }
+
+    if (iss.transitions.length) {
       const chain = buildStatusChain(iss.transitions);
-      const parts = [`${iss.key}: ${iss.summary || ''}`.trim()];
-      if (chain) parts.push(`Status: ${chain}`);
-      if (iss.comments) parts.push(`Comments: ${iss.comments}`);
-      if (iss.worklogs) parts.push(`Worklog: ${iss.worklogs} (${secondsToHhmm(iss.workSeconds)})`);
-      return `- ${parts.join(' | ')}`;
-    })
-    .filter(Boolean);
+      if (chain) {
+        lines.push(`  - Status: ${chain}`);
+      }
+    }
 
-  const trackingBlock = trackingLines.length
-    ? trackingLines.join('\n')
-    : '- Không có thay đổi trạng thái.';
+    if (iss.comments.length) {
+      lines.push(`  - Comments: ${iss.comments.join('; ')}`);
+    }
 
-  return trackingBlock;
+    if (iss.worklogs.length) {
+      const totalSeconds = iss.worklogs.reduce((sum, w) => sum + w.seconds, 0);
+      const notes = iss.worklogs.map((w) => w.note).filter(Boolean);
+      const notesPart = notes.length ? ` | notes: ${notes.join('; ')}` : '';
+      lines.push(`  - Worklog: ${iss.worklogs.length} entries (${secondsToHhmm(totalSeconds)})${notesPart}`);
+    }
+
+    if (iss.others.length) {
+      const unique = Array.from(new Set(iss.others));
+      lines.push(`  - Other updates: ${unique.join(', ')}`);
+    }
+  });
+
+  return lines.join('\n');
 };
 
 export const buildIssuesList = (actorBlock, limit = 5) => {
@@ -172,11 +209,13 @@ export const buildIssuesList = (actorBlock, limit = 5) => {
     if (!byIssue.has(action.issueKey)) {
       byIssue.set(action.issueKey, {
         key: action.issueKey,
-        summary: action.issueSummary,
+        summary: sanitizeIssueSummary(action.issueSummary),
       });
     }
   }
   const list = Array.from(byIssue.values()).slice(0, limit);
   if (!list.length) return '';
-  return list.map((it) => `- ${it.key}: ${it.summary || ''}`).join('\n');
+  return list
+    .map((it) => (it.summary ? `- ${it.key}: ${it.summary}` : `- ${it.key}`))
+    .join('\n');
 };

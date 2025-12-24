@@ -21,6 +21,7 @@ defaults:
 projects:
   OPS:
     enabled: true
+    projectName: "FPT Ops"
     jira:
       projectKey: OPS
     fchat:
@@ -33,6 +34,7 @@ projects:
 
   DEV:
     enabled: true
+    projectName: "FPT Dev"
     jira:
       projectKey: DEV
     fchat:

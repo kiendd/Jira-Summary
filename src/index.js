@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { computeDayRange } from './time.js';
+import { computeDayRange, countBusinessDaysSince } from './time.js';
 import { loadProjectConfig, loadRootConfig } from './config.js';
 import { logger } from './logger.js';
 import { parseArgs } from './cli.js';
@@ -12,6 +12,13 @@ import { writePdfReport } from './pdf-writer.js';
 import { applyUserFilters, writeActorList } from './user-filter.js';
 import { sendFchatReport } from './fchat-client.js';
 import { createJiraClient } from './jira-client.js';
+import { buildIssueSearchUrl } from './utils.js';
+import {
+  loadLastActionHistory,
+  saveLastActionHistory,
+  updateLastActionHistory,
+  getLastActionDate,
+} from './action-history.js';
 
 const resolveProjectIds = (projectArg, rootConfig) => {
   const normalize = (v) => (v || '').trim();
@@ -92,7 +99,10 @@ const processProject = async (projectConfig, args, range, dateLabel) => {
 
   const summaries = new Map();
   const trackings = new Map();
+  const statsLinks = new Map();
+  const commentDetails = new Map();
   const warnings = [];
+  const issueLinks = new Map();
   const condenseSummary = (text, maxLines = 6) => {
     const lines = (text || '').split('\n').map((l) => l.trim()).filter(Boolean);
     return lines.slice(0, maxLines).join('\n');
@@ -104,8 +114,37 @@ const processProject = async (projectConfig, args, range, dateLabel) => {
     let summary = null;
     let tracking = '';
 
+    const createdKeys = new Set();
+    const statusKeys = new Set();
+    const commentKeys = new Set();
+    const worklogKeys = new Set();
+    const commentItems = [];
+    const commentDest = `${entry.actor.id}-comments`;
+
+    for (const action of entry.actions || []) {
+      if (action.issueKey && action.issueUrl && !issueLinks.has(action.issueKey)) {
+        issueLinks.set(action.issueKey, action.issueUrl);
+      }
+      if (!action.issueKey) continue;
+      if (action.type === 'created') createdKeys.add(action.issueKey);
+      if (action.type === 'status-change') statusKeys.add(action.issueKey);
+      if (action.type === 'comment') {
+        commentKeys.add(action.issueKey);
+        commentItems.push({
+          issueKey: action.issueKey,
+          issueSummary: action.issueSummary,
+          issueUrl: action.issueUrl,
+          commentId: action.details?.commentId,
+          commentUrl: action.details?.commentUrl,
+          excerpt: action.details?.excerpt,
+          createdLocal: action.details?.createdLocal,
+        });
+      }
+      if (action.type === 'worklog') worklogKeys.add(action.issueKey);
+    }
+
     if (entry.actions.length === 0) {
-      summary = 'Không có hoạt động trong ngày.';
+      summary = 'No activity today.';
       tracking = '';
     } else {
       summary = useXlm ? await summarizeWithXlm(entry, dateLabel, projectConfig, { requireXlm }) : null;
@@ -117,15 +156,47 @@ const processProject = async (projectConfig, args, range, dateLabel) => {
 
     summaries.set(entry.actor.id, summaryForPdf);
     trackings.set(entry.actor.id, tracking);
+    if (commentItems.length) {
+      commentDetails.set(entry.actor.id, { dest: commentDest, items: commentItems });
+    }
+    statsLinks.set(entry.actor.id, {
+      created:
+        createdKeys.size > 0
+          ? { link: buildIssueSearchUrl(Array.from(createdKeys).sort(), projectConfig.jira.baseUrl) }
+          : null,
+      status:
+        statusKeys.size > 0
+          ? { link: buildIssueSearchUrl(Array.from(statusKeys).sort(), projectConfig.jira.baseUrl) }
+          : null,
+      comments:
+        commentKeys.size > 0
+          ? { link: buildIssueSearchUrl(Array.from(commentKeys).sort(), projectConfig.jira.baseUrl) }
+          : null,
+      worklogs:
+        worklogKeys.size > 0
+          ? { link: buildIssueSearchUrl(Array.from(worklogKeys).sort(), projectConfig.jira.baseUrl) }
+          : null,
+    });
 
     logger.info({ actor: entry.actor.name }, 'Done summarizing actor');
     logger.info(`\n===== ${entry.actor.name} =====\n${summaryForPdf}\n\n${tracking}\n`);
   }
 
+  const history = loadLastActionHistory();
+  updateLastActionHistory(history, projectKey, targets, dateLabel);
+  saveLastActionHistory(history);
+
   warnings.push(
     ...targets
       .filter((entry) => !entry.actions.length)
-      .map((entry) => `No actions for user: ${entry.actor.name}`)
+      .map((entry) => {
+        const lastDate = getLastActionDate(history, projectKey, entry.actor?.id, entry.actor?.name);
+        if (!lastDate) return `No actions for user: ${entry.actor.name}`;
+        const days = countBusinessDaysSince(lastDate, dateLabel, projectConfig.timezone);
+        if (days === null) return `No actions for user: ${entry.actor.name}`;
+        const label = days === 1 ? 'business day' : 'business days';
+        return `No actions for user: ${entry.actor.name} (${days} ${label})`;
+      })
   );
 
   const outputEntries = targets;
@@ -139,10 +210,14 @@ const processProject = async (projectConfig, args, range, dateLabel) => {
     const pdfPath = await writePdfReport({
       dateLabel,
       projectKey,
+      projectName: projectConfig.projectName,
       timezone: projectConfig.timezone,
       grouped: targets,
       summaries,
       trackings,
+      statsLinks,
+      commentDetails,
+      issueLinks,
       warnings,
     });
     logger.info(`PDF saved at ${pdfPath}`);

@@ -9,6 +9,7 @@ const DEFAULT_CONFIG = {
   timezone: 'Asia/Ho_Chi_Minh',
   maxConcurrency: 5,
   enabled: true,
+  projectName: '',
   lmx: {
     baseUrl: 'http://localhost:8002',
     path: '/v1/chat/completions',
@@ -113,6 +114,7 @@ const normalizeProject = (projectId, projectConfig, { configDir, configPath }) =
   const merged = {
     ...projectConfig,
     enabled: projectConfig.enabled !== undefined ? toBool(projectConfig.enabled) : true,
+    projectName: projectConfig.projectName ? String(projectConfig.projectName).trim() : '',
     timezone: projectConfig.timezone || DEFAULT_CONFIG.timezone,
     maxConcurrency: toInt(projectConfig.maxConcurrency, DEFAULT_CONFIG.maxConcurrency),
     lmx: normalizeLmx(projectConfig.lmx),

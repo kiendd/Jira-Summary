@@ -4,14 +4,15 @@ User: {{USER_NAME}}
 Project: {{PROJECT_KEY}}
 
 Instructions:
-- Summary: tối đa 10 bullet về các việc đã làm. Chỉ nêu tiêu đề, kết quả cuối (status hiện tại).
-- Ưu tiên kết quả hoàn thành hoặc chặn blocker; tránh lặp lại thông tin.
-- Không bịa nội dung ngoài dữ liệu cung cấp.
-- Output chỉ dùng một ngôn ngữ: tiếng Việt hoặc English (không trộn ngôn ngữ khác).
+- Summary: up to 10 bullets about completed work. Include only titles and final outcomes (current status).
+- Prioritize completed results or blockers; avoid repetition.
+- Do not invent content outside the provided data.
+- Output must be English only (no mixed languages).
+- Capitalize the first letter of each bullet line.
 
 Context:
 Actions:
 {{ACTION_LINES}}
 
-Yêu cầu định dạng:
-- Xuất bullet list.
+Format:
+- Output a bullet list.

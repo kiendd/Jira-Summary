@@ -3,7 +3,7 @@ import { secondsToHhmm } from './utils.js';
 export const renderHuman = ({ dateLabel, projectKey, grouped, summaries, timezone }) => {
   console.log(`\nJira action summary for project ${projectKey} on ${dateLabel} (timezone ${timezone})`);
   if (!grouped.length) {
-    console.log('Không có hoạt động trong ngày.');
+    console.log('No activity today.');
     return;
   }
 
