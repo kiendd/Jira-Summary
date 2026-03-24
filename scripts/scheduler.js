@@ -65,9 +65,7 @@ const runReport = (args = []) => {
 
 const trigger = () => {
   rotateLogs();
-  const dayOfWeek = DateTime.now().setZone(TIMEZONE).weekday; // 1=Mon … 7=Sun
-  const args = dayOfWeek === 5 ? ['--weekly'] : [];
-  runReport(args);
+  runReport();
 };
 
 // Schedule: 20:00 Mon–Fri, timezone GMT+7
