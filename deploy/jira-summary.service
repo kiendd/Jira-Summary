@@ -1,0 +1,12 @@
+[Unit]
+Description=Jira Summary Daily Report
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=YOUR_USER
+WorkingDirectory=/opt/jira-summary
+ExecStart=/opt/jira-summary/scripts/run-daily.sh
+StandardOutput=journal
+StandardError=journal
