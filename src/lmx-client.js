@@ -5,8 +5,8 @@ import { buildLocalSummary } from './summary-builder.js';
 import { writePrompt } from './prompt-writer.js';
 import { loadTemplate } from './prompt-loader.js';
 
-const buildPrompt = (actorBlock, dateLabel, projectConfig) => {
-  const tmpl = loadTemplate('user');
+const buildPrompt = (actorBlock, dateLabel, projectConfig, templateName = 'user') => {
+  const tmpl = loadTemplate(templateName);
   const lines = actorBlock.actions
     .map((action) => {
       const atLocal = DateTime.fromISO(action.at || action.details?.startedLocal, { zone: 'utc' })
@@ -14,9 +14,8 @@ const buildPrompt = (actorBlock, dateLabel, projectConfig) => {
         .toFormat('HH:mm');
       const summary = sanitizeIssueSummary(action.issueSummary);
       if (action.type === 'status-change') {
-        return `- [${atLocal}] ${action.issueKey} status ${action.details.from} -> ${action.details.to}${
-          summary ? ` | ${summary}` : ''
-        }`;
+        return `- [${atLocal}] ${action.issueKey} status ${action.details.from} -> ${action.details.to}${summary ? ` | ${summary}` : ''
+          }`;
       }
       if (action.type === 'comment') {
         return `- [${atLocal}] comment ${action.issueKey}: ${truncate(action.details.excerpt, 160)}`;
@@ -87,8 +86,8 @@ const tryCallLmx = async (url, prompt, projectConfig) => {
   return String(summary).trim();
 };
 
-export const summarizeWithXlm = async (actorBlock, dateLabel, projectConfig, { requireXlm } = {}) => {
-  const prompt = buildPrompt(actorBlock, dateLabel, projectConfig);
+export const summarizeWithXlm = async (actorBlock, dateLabel, projectConfig, { requireXlm, template = 'user' } = {}) => {
+  const prompt = buildPrompt(actorBlock, dateLabel, projectConfig, template);
   writePrompt(actorBlock.actor.name, prompt);
   const base = projectConfig.lmx.baseUrl;
   const urls = [

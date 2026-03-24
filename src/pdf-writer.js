@@ -178,10 +178,10 @@ const buildIssueActivity = (grouped) => {
     .slice(0, 10);
 };
 
-const addIssueActivitySummary = (doc, grouped, issueLinks) => {
-  const items = buildIssueActivity(grouped);
+const addIssueActivitySummary = (doc, grouped, issueLinks, title = 'Top Issues Today', limit = 10) => {
+  const items = buildIssueActivity(grouped).slice(0, limit);
   if (!items.length) return;
-  doc.font(FONT_BOLD).fontSize(12).text('Top Issues Today');
+  doc.font(FONT_BOLD).fontSize(12).text(title);
   doc.moveDown(0.3);
   doc.font(FONT_REGULAR).fontSize(11);
   items.forEach((item) => {
@@ -396,9 +396,13 @@ export const writePdfReport = async ({
   issueLinks = new Map(),
   outputDir = 'output',
   warnings = [],
+  suffix,
+  topIssuesTitle,
+  topIssuesLimit,
 }) => {
   ensureDir(outputDir);
-  const fileName = `summary-${projectKey}-${dateLabel}.pdf`;
+  const partSuffix = suffix ? `-${suffix}` : '';
+  const fileName = `summary-${projectKey}-${dateLabel}${partSuffix}.pdf`;
   const filePath = path.join(outputDir, fileName);
 
   const doc = new PDFDocument({ autoFirstPage: true, margin: 50 });
@@ -407,7 +411,7 @@ export const writePdfReport = async ({
 
   addHeader(doc, projectKey, projectName, dateLabel, timezone, warnings);
   addMenu(doc, grouped);
-  addIssueActivitySummary(doc, grouped, issueLinks);
+  addIssueActivitySummary(doc, grouped, issueLinks, topIssuesTitle, topIssuesLimit);
 
   grouped.forEach((entry, idx) => {
     if (idx > 0 && doc.y > doc.page.height - 200) {

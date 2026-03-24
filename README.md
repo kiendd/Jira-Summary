@@ -24,6 +24,8 @@ CLI tóm tắt hành động Jira theo người trong một ngày (mặc định
 - Mặc định: nếu không có `--project` và không đặt `defaultProject`/`DEFAULT_PROJECT`, CLI sẽ chạy tất cả project trong file YAML.
 - Chỉ định ngày: `npm start -- --date 2024-05-15`
 - Chỉ định project: `npm start -- --project DEV` (hoặc nhiều project: `--project OPS,DEV`, hoặc toàn bộ: `--project all`)
+- Chạy báo cáo tuần: `npm start -- --weekly` (tính từ thứ 2 đến hiện tại)
+- Chỉ định ngày làm việc để check attendance: `npm start -- --weekly --workdays 2,3,4,5,6` (Check đi làm từ thứ 2 đến thứ 6, 1=CN)
 - Xuất JSON thô: `npm start -- --json`
 - Bỏ qua LMX: `npm start -- --skip-xlm`
 - Bắt buộc LMX (fail nếu LMX lỗi): flag `--require-xlm` hoặc đặt `lmx.required: true` cho project.

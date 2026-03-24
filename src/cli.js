@@ -13,7 +13,13 @@ export const parseArgs = (argv) => {
     } else if (val === '--skip-xlm') {
       args.skipXlm = true;
     } else if (val === '--require-xlm') {
+    } else if (val === '--require-xlm') {
       args.requireXlm = true;
+    } else if (val === '--weekly' || val === '-w') {
+      args.weekly = true;
+    } else if (val === '--workdays') {
+      args.workdays = argv[i + 1];
+      i += 1;
     }
   }
   return args;

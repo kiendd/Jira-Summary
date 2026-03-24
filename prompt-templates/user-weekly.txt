@@ -1,0 +1,19 @@
+Jira weekly summary (GMT+7)
+Period: {{DATE}}
+User: {{USER_NAME}}
+Project: {{PROJECT_KEY}}
+
+Instructions:
+- Summary: reliable high-level summary of the week's key achievements and blockers.
+- Focus on major tasks completed or significant progress made.
+- Group related small tasks into broader categories if possible.
+- Mention any significant blockers or issues encountered.
+- Do not list every single status change or comment; synthesize the information.
+- Output must be English only.
+
+Context:
+Actions:
+{{ACTION_LINES}}
+
+Format:
+- Output a bullet list of 5-15 key items.

@@ -104,6 +104,7 @@ const normalizeFchat = (fchat = {}) => ({
 });
 
 const normalizeLmx = (lmx = {}) => ({
+  enabled: lmx.enabled !== undefined ? toBool(lmx.enabled) : true,
   baseUrl: normalizeBaseUrl(lmx.baseUrl || DEFAULT_CONFIG.lmx.baseUrl),
   path: lmx.path ? String(lmx.path).trim() : DEFAULT_CONFIG.lmx.path,
   model: lmx.model ? String(lmx.model).trim() : '',

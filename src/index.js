@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { computeDayRange, countBusinessDaysSince } from './time.js';
+import { DateTime } from 'luxon';
+import { computeDayRange, computeWeeklyRange, countBusinessDaysSince, getWorkdaysInRange } from './time.js';
 import { loadProjectConfig, loadRootConfig } from './config.js';
 import { logger } from './logger.js';
 import { parseArgs } from './cli.js';
@@ -107,7 +108,7 @@ const processProject = async (projectConfig, args, range, dateLabel) => {
     const lines = (text || '').split('\n').map((l) => l.trim()).filter(Boolean);
     return lines.slice(0, maxLines).join('\n');
   };
-  const useXlm = !args.skipXlm;
+  const useXlm = !args.skipXlm && projectConfig.lmx.enabled !== false;
   const requireXlm = args.requireXlm ?? projectConfig.lmx.required;
   for (const entry of targets) {
     logger.info({ actor: entry.actor.name, actions: entry.actions.length, useXlm }, 'Summarizing actor');
@@ -147,7 +148,12 @@ const processProject = async (projectConfig, args, range, dateLabel) => {
       summary = 'No activity today.';
       tracking = '';
     } else {
-      summary = useXlm ? await summarizeWithXlm(entry, dateLabel, projectConfig, { requireXlm }) : null;
+      summary = useXlm
+        ? await summarizeWithXlm(entry, dateLabel, projectConfig, {
+          requireXlm,
+          template: args.weekly ? 'user-weekly' : 'user',
+        })
+        : null;
       if (!summary) summary = buildLocalSummary(entry);
       tracking = buildStatusTracking(entry);
     }
@@ -199,6 +205,44 @@ const processProject = async (projectConfig, args, range, dateLabel) => {
       })
   );
 
+  // Attendance check for weekly reports or if workdays are specified
+  if (args.weekly || args.workdays) {
+    let weekdayNums = []; // Luxon 1=Mon...7=Sun
+    if (args.workdays) {
+      // Map user input (1=Sun...7=Sat) to Luxon (1=Mon...7=Sun)
+      const userDays = args.workdays.split(',').map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n));
+      // User: 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri, 7=Sat
+      // Luxon: 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 7=Sun
+      // Map: User 1 -> Luxon 7. User N (>1) -> Luxon N-1.
+      weekdayNums = userDays.map((u) => (u === 1 ? 7 : u - 1));
+    } else {
+      // Default: Mon-Fri (Luxon 1-5)
+      weekdayNums = [1, 2, 3, 4, 5];
+    }
+
+    const expectedDates = getWorkdaysInRange(range, weekdayNums, projectConfig.timezone);
+
+    targets.forEach((entry) => {
+      const activeDays = new Set();
+      entry.actions.forEach((a) => {
+        const ts = a.at || a.details?.startedLocal; // 'at' is usually ISO or local depending on source, let's trust normalized 'at'
+        if (ts) {
+          // 'at' in collected actions is UTC ISO string (see jira-actions.js)
+          // We need to convert it to project timezone to compare dates
+          const dateStr = ts.includes('T') || ts.includes('Z')
+            ? DateTime.fromISO(ts, { zone: 'utc' }).setZone(projectConfig.timezone).toFormat('yyyy-LL-dd')
+            : ts.split(' ')[0]; // Fallback if already formatted
+          activeDays.add(dateStr);
+        }
+      });
+
+      const missing = expectedDates.filter((d) => !activeDays.has(d));
+      if (missing.length > 0) {
+        warnings.push(`Missing Action Days: ${entry.actor.name} (${missing.join(', ')})`);
+      }
+    });
+  }
+
   const outputEntries = targets;
   if (args.json) {
     renderJson({ dateLabel, projectKey, grouped: outputEntries, timezone: projectConfig.timezone });
@@ -219,6 +263,9 @@ const processProject = async (projectConfig, args, range, dateLabel) => {
       commentDetails,
       issueLinks,
       warnings,
+      suffix: args.weekly ? 'weekly' : undefined,
+      topIssuesTitle: args.weekly ? 'Top Issues Week' : undefined,
+      topIssuesLimit: args.weekly ? 20 : undefined,
     });
     logger.info(`PDF saved at ${pdfPath}`);
     await sendFchatReport({ projectConfig, dateLabel, targets, summaries, pdfPath });
@@ -237,9 +284,19 @@ const main = async () => {
 
   for (const projectId of projectIds) {
     const projectConfig = loadProjectConfig(projectId, rootConfig.configPath);
-    const range = computeDayRange(args.date, projectConfig.timezone);
-    const dateLabel = range.start.setZone(projectConfig.timezone).toFormat('yyyy-LL-dd');
-    logger.info({ projectId, projectKey: projectConfig.jira.projectKey }, 'Starting project run');
+    let range, dateLabel;
+
+    if (args.weekly) {
+      range = computeWeeklyRange(args.date, projectConfig.timezone);
+      const startStr = range.start.setZone(projectConfig.timezone).toFormat('yyyy-LL-dd');
+      const endStr = range.end.setZone(projectConfig.timezone).toFormat('yyyy-LL-dd');
+      dateLabel = `${startStr}_to_${endStr}`;
+    } else {
+      range = computeDayRange(args.date, projectConfig.timezone);
+      dateLabel = range.start.setZone(projectConfig.timezone).toFormat('yyyy-LL-dd');
+    }
+
+    logger.info({ projectId, projectKey: projectConfig.jira.projectKey, weekly: args.weekly }, 'Starting project run');
     await processProject(projectConfig, args, range, dateLabel);
   }
 };

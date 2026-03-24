@@ -12,7 +12,7 @@ export const computeDayRange = (dateInput, timezone) => {
   return { start, end };
 };
 
-export const toJiraDateTime = (dt) => dt.toFormat('yyyy-LL-dd HH:mm');
+export const toJiraDateTime = (dt) => dt.toFormat('yyyy-MM-dd HH:mm');
 
 export const formatLocalTime = (isoString, timezone) => {
   const dt = DateTime.fromISO(isoString, { zone: 'utc' }).setZone(timezone);
@@ -37,4 +37,36 @@ export const countBusinessDaysSince = (fromDate, toDate, timezone) => {
     cursor = cursor.plus({ days: 1 });
   }
   return count;
+};
+
+export const getWorkdaysInRange = (range, weekdayNumbers, timezone) => {
+  const result = [];
+  let cursor = range.start.setZone(timezone).startOf('day');
+  const end = range.end.setZone(timezone).startOf('day');
+
+  while (cursor < end) {
+    if (weekdayNumbers.includes(cursor.weekday)) {
+      result.push(cursor.toFormat('yyyy-LL-dd'));
+    }
+    cursor = cursor.plus({ days: 1 });
+  }
+  return result;
+};
+
+export const computeWeeklyRange = (dateInput, timezone) => {
+  const base = dateInput
+    ? DateTime.fromISO(dateInput, { zone: timezone })
+    : DateTime.now().setZone(timezone);
+
+  if (!base.isValid) {
+    throw new Error(`Invalid date input: ${dateInput}`);
+  }
+
+  // Start: Monday 00:00 of the week
+  const start = base.startOf('week');
+
+  // End: If dateInput is provided, end of that day. If not (current execution), use "now".
+  const end = dateInput ? base.endOf('day') : base;
+
+  return { start, end };
 };

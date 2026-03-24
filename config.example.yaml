@@ -7,6 +7,7 @@ defaults:
     apiToken: your-api-token
     authType: basic
   lmx:
+    enabled: true
     baseUrl: http://localhost:8002
     path: /v1/chat/completions
     model: ""

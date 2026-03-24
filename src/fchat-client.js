@@ -43,9 +43,27 @@ export const sendFchatReport = async ({ projectConfig, dateLabel, targets, pdfPa
   });
 
   if (fchat.sendText) {
-    const [year, month, day] = dateLabel.split('-');
-    const formatted = day && month && year ? `${day}/${month}/${year}` : dateLabel;
-    const template = fchat.headerTemplate || 'Con gửi tổng hợp action trên JIRA ngày {date}';
+    let formatted;
+    let isWeekly = false;
+    if (dateLabel.includes('_to_')) {
+      // Weekly format: yyyy-mm-dd_to_yyyy-mm-dd
+      const [start, end] = dateLabel.split('_to_');
+      const startFmt = start.split('-').reverse().join('/');
+      const endFmt = end.split('-').reverse().join('/');
+      formatted = `${startFmt}-${endFmt}`;
+      isWeekly = true;
+    } else {
+      // Daily format: yyyy-mm-dd
+      formatted = dateLabel.split('-').reverse().join('/');
+    }
+
+    let template = fchat.headerTemplate || 'Con gửi tổng hợp action trên JIRA ngày {date}';
+    if (isWeekly) {
+      if (template.includes('ngày {date}')) {
+        template = template.replace('ngày {date}', 'tuần {date}');
+      }
+    }
+
     const header = template.replace(/\{date\}/g, formatted);
     const body = buildMessage({ targets });
     const message = body ? `${header}\n\n${body}` : header;

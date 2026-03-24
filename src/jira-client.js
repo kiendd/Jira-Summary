@@ -14,9 +14,12 @@ export const createJiraClient = (projectConfig) => {
 };
 
 export const searchIssuesUpdatedInRange = async ({ projectKey, start, end, jiraClient, maxConcurrency = 5 }) => {
+  // Expand range by 1 day to ensure we cover timezone shifts. Local filtering will be precise.
+  const safeStart = start.minus({ days: 1 });
+  const safeEnd = end.plus({ days: 1 });
   const jql = `project = ${projectKey} AND updated >= "${toJiraDateTime(
-    start
-  )}" AND updated < "${toJiraDateTime(end)}" ORDER BY updated ASC`;
+    safeStart
+  )}" AND updated < "${toJiraDateTime(safeEnd)}" ORDER BY updated ASC`;
   const limit = pLimit(maxConcurrency);
   const maxResults = 50;
   const keys = [];
