@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node src/index.js",
     "backfill": "node scripts/backfill.js",
-    "daily": "bash scripts/run-daily.sh",
+    "scheduler": "node scripts/scheduler.js",
     "lint": "find src -name \"*.js\" -print0 | xargs -0 -n1 node --check"
   },
   "dependencies": {
@@ -17,6 +17,7 @@
     "fchat-bot-api": "^0.2.0",
     "jira.js": "^5.2.2",
     "luxon": "^3.4.4",
+    "node-cron": "^4.2.1",
     "p-limit": "^4.0.0",
     "pdfkit": "^0.15.0",
     "yaml": "^2.4.5"
