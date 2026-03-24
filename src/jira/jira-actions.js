@@ -1,9 +1,9 @@
 import { DateTime } from 'luxon';
 import pLimit from 'p-limit';
 import { searchIssuesUpdatedInRange, getIssueWithDetails } from './jira-client.js';
-import { logger } from './logger.js';
-import { isWithinRange } from './time.js';
-import { truncate, buildIssueUrl, buildCommentUrl } from './utils.js';
+import { logger } from '../logger.js';
+import { isWithinRange } from '../time.js';
+import { truncate, buildIssueUrl, buildCommentUrl } from '../utils.js';
 
 const safeText = (value) => {
   if (!value) return '';

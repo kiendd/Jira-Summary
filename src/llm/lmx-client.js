@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon';
-import { logger } from './logger.js';
-import { truncate, sanitizeIssueSummary } from './utils.js';
-import { buildLocalSummary } from './summary-builder.js';
+import { logger } from '../logger.js';
+import { truncate, sanitizeIssueSummary } from '../utils.js';
+import { buildLocalSummary } from '../output/summary-builder.js';
 import { writePrompt } from './prompt-writer.js';
 import { loadTemplate } from './prompt-loader.js';
 

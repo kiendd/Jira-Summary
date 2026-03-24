@@ -1,7 +1,7 @@
 import path from 'path';
 import { config } from '../src/config.js';
 import { logger } from '../src/logger.js';
-import { sendFchatReport } from '../src/fchat-client.js';
+import { sendFchatReport } from '../src/output/fchat-client.js';
 
 const run = async () => {
   if (!config.fchat.enabled) {

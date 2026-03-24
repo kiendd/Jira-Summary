@@ -1,4 +1,4 @@
-import { secondsToHhmm, truncate, sanitizeIssueSummary } from './utils.js';
+import { secondsToHhmm, truncate, sanitizeIssueSummary } from '../utils.js';
 
 const listIssues = (items, limit = 5) => {
   if (!items.length) return '';

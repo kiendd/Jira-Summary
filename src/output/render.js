@@ -1,4 +1,4 @@
-import { secondsToHhmm } from './utils.js';
+import { secondsToHhmm } from '../utils.js';
 
 export const renderHuman = ({ dateLabel, projectKey, grouped, summaries, timezone }) => {
   console.log(`\nJira action summary for project ${projectKey} on ${dateLabel} (timezone ${timezone})`);

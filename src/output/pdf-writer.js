@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import PDFDocument from 'pdfkit';
-import { secondsToHhmm, sanitizeIssueSummary } from './utils.js';
+import { secondsToHhmm, sanitizeIssueSummary } from '../utils.js';
 
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) {

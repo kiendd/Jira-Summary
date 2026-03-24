@@ -11,16 +11,16 @@
  */
 import { DateTime } from 'luxon';
 import { loadProjectConfig, loadRootConfig } from '../src/config.js';
-import { createJiraClient } from '../src/jira-client.js';
-import { collectActionsForRange } from '../src/jira-actions.js';
-import { groupActionsByActor } from '../src/group-actions.js';
-import { applyUserFilters } from '../src/user-filter.js';
+import { createJiraClient } from '../src/jira/jira-client.js';
+import { collectActionsForRange } from '../src/jira/jira-actions.js';
+import { groupActionsByActor } from '../src/pipeline/group-actions.js';
+import { applyUserFilters } from '../src/pipeline/user-filter.js';
 import { computeDayRange } from '../src/time.js';
 import {
   loadLastActionHistory,
   saveLastActionHistory,
   updateLastActionHistory,
-} from '../src/action-history.js';
+} from '../src/pipeline/action-history.js';
 import { logger } from '../src/logger.js';
 
 // --- CLI args ---

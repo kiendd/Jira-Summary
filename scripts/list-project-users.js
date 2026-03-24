@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { config } from '../src/config.js';
 import { logger } from '../src/logger.js';
-import { getAllUsersInProject } from '../src/jira-client.js';
+import { getAllUsersInProject } from '../src/jira/jira-client.js';
 
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) {

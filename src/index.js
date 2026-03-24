@@ -4,22 +4,22 @@ import { computeDayRange, computeWeeklyRange, countBusinessDaysSince, getWorkday
 import { loadProjectConfig, loadRootConfig } from './config.js';
 import { logger } from './logger.js';
 import { parseArgs } from './cli.js';
-import { collectActionsForRange } from './jira-actions.js';
-import { groupActionsByActor } from './group-actions.js';
-import { summarizeWithXlm } from './lmx-client.js';
-import { renderHuman, renderJson } from './render.js';
-import { buildLocalSummary, buildStatusTracking } from './summary-builder.js';
-import { writePdfReport } from './pdf-writer.js';
-import { applyUserFilters, writeActorList } from './user-filter.js';
-import { sendFchatReport } from './fchat-client.js';
-import { createJiraClient } from './jira-client.js';
+import { collectActionsForRange } from './jira/jira-actions.js';
+import { groupActionsByActor } from './pipeline/group-actions.js';
+import { summarizeWithXlm } from './llm/lmx-client.js';
+import { renderHuman, renderJson } from './output/render.js';
+import { buildLocalSummary, buildStatusTracking } from './output/summary-builder.js';
+import { writePdfReport } from './output/pdf-writer.js';
+import { applyUserFilters, writeActorList } from './pipeline/user-filter.js';
+import { sendFchatReport } from './output/fchat-client.js';
+import { createJiraClient } from './jira/jira-client.js';
 import { buildIssueSearchUrl } from './utils.js';
 import {
   loadLastActionHistory,
   saveLastActionHistory,
   updateLastActionHistory,
   getLastActionDate,
-} from './action-history.js';
+} from './pipeline/action-history.js';
 
 const resolveProjectIds = (projectArg, rootConfig) => {
   const normalize = (v) => (v || '').trim();

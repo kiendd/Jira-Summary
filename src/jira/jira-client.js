@@ -1,7 +1,7 @@
 import { Version2Client } from 'jira.js';
 import pLimit from 'p-limit';
-import { logger } from './logger.js';
-import { toJiraDateTime } from './time.js';
+import { logger } from '../logger.js';
+import { toJiraDateTime } from '../time.js';
 
 export const createJiraClient = (projectConfig) => {
   const isPat = projectConfig.jira.authType === 'pat';

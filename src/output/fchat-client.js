@@ -1,6 +1,6 @@
 import path from 'path';
 import { createRequire } from 'module';
-import { logger } from './logger.js';
+import { logger } from '../logger.js';
 
 const require = createRequire(import.meta.url);
 

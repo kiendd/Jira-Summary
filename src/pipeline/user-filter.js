@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { getAllUsersInProject } from './jira-client.js';
+import { getAllUsersInProject } from '../jira/jira-client.js';
 
 const matchUser = (entry, token) => {
   const norm = (v) => (v || '').toLowerCase();
